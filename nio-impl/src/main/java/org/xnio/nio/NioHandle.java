@@ -20,46 +20,77 @@ package org.xnio.nio;
 
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Thread.currentThread;
 import static org.xnio.Bits.allAreClear;
 import static org.xnio.Bits.allAreSet;
+import static org.xnio.Bits.anyAreClear;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-abstract class NioHandle {
+abstract class NioHandle extends AtomicInteger {
     private final WorkerThread workerThread;
     private final SelectionKey selectionKey;
 
     protected NioHandle(final WorkerThread workerThread, final SelectionKey selectionKey) {
         this.workerThread = workerThread;
         this.selectionKey = selectionKey;
+        set(selectionKey.interestOps());
     }
 
     void resume(final int ops) {
         try {
-            if (! allAreSet(selectionKey.interestOps(), ops)) {
+            int oldVal, newVal;
+            do {
+                oldVal = get();
+                if (allAreSet(oldVal, ops)) {
+                    return;
+                }
+                newVal = oldVal | ops;
+            } while (! compareAndSet(oldVal, newVal));
+            if (anyAreClear(selectionKey.interestOps(), ops)) {
+                // there are new interest ops, so we must set them
                 workerThread.setOps(selectionKey, ops);
             }
         } catch (CancelledKeyException ignored) {}
     }
 
     void wakeup(final int ops) {
-        workerThread.queueTask(new Runnable() {
-            public void run() {
-                handleReady(ops);
-            }
-        });
         try {
-            if (! allAreSet(selectionKey.interestOps(), ops)) {
+            int oldVal, newVal;
+            do {
+                oldVal = get();
+                if (allAreSet(oldVal, ops)) {
+                    return;
+                }
+                newVal = oldVal | ops;
+            } while (! compareAndSet(oldVal, newVal));
+            if (anyAreClear(selectionKey.interestOps(), ops)) {
+                // there are new interest ops, so we must set them
                 workerThread.setOps(selectionKey, ops);
             }
         } catch (CancelledKeyException ignored) {}
+        workerThread.queueTask(new Runnable() {
+            public void run() {
+                preHandleReady(ops);
+            }
+        });
     }
 
     void suspend(final int ops) {
         try {
-            if (! allAreClear(selectionKey.interestOps(), ops)) {
+            int oldVal, newVal;
+            do {
+                oldVal = get();
+                if (allAreClear(oldVal, ops)) {
+                    return;
+                }
+                newVal = oldVal & ~ops;
+            } while (! compareAndSet(oldVal, newVal));
+            if (allAreSet(ops, SelectionKey.OP_CONNECT)) {
+                // this is an oddball that we always have to clear aggressively
                 workerThread.clearOps(selectionKey, ops);
             }
         } catch (CancelledKeyException ignored) {}
@@ -67,9 +98,21 @@ abstract class NioHandle {
 
     boolean isResumed(final int ops) {
         try {
-            return allAreSet(selectionKey.interestOps(), ops);
+            return allAreSet(get(), ops);
         } catch (CancelledKeyException ignored) {
             return false;
+        }
+    }
+
+    void preHandleReady(int ops) {
+        assert currentThread() == workerThread;
+        final int spuriousOps = ops & ~get();
+        if (spuriousOps != 0) {
+            workerThread.clearOps(selectionKey, spuriousOps);
+        }
+        ops &= ~spuriousOps;
+        if (ops != 0) {
+            handleReady(ops);
         }
     }
 
