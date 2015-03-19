@@ -33,8 +33,8 @@ import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
-import static org.xnio._private.Messages.msg;
 
+import org.wildfly.common.Assert;
 
 /**
  * An immutable string of bytes.  Since instances of this class are guaranteed to be immutable, they are
@@ -52,18 +52,10 @@ public final class ByteString implements Comparable<ByteString>, Serializable, C
     private transient int hashCodeIgnoreCase;
 
     private ByteString(final byte[] bytes, final int offs, final int len) {
+        Assert.checkArrayBounds(bytes, offs, len);
         this.bytes = bytes;
         this.offs = offs;
         this.len = len;
-        if (offs < 0) {
-            throw msg.parameterOutOfRange("offs");
-        }
-        if (len < 0) {
-            throw msg.parameterOutOfRange("len");
-        }
-        if (offs + len > bytes.length) {
-            throw msg.parameterOutOfRange("offs");
-        }
     }
 
     private static int calcHashCode(final byte[] bytes, final int offs, final int len) {

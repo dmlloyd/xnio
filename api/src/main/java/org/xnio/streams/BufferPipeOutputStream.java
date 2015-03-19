@@ -30,6 +30,7 @@ import org.xnio.Pooled;
 /**
  * An {@code OutputStream} implementation which writes out {@code ByteBuffer}s to a consumer.
  */
+@Deprecated
 public class BufferPipeOutputStream extends OutputStream {
 
     // internal buffer

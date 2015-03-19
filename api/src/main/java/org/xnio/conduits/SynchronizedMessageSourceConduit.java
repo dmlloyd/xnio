@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class SynchronizedMessageSourceConduit extends AbstractSynchronizedSourceConduit<MessageSourceConduit> implements MessageSourceConduit {
 
     /**

@@ -25,6 +25,7 @@ import org.xnio.ChannelListener;
 /**
  * A channel that can receive messages.  Such a channel receives whole messages only.
  */
+@Deprecated
 public interface ReadableMessageChannel extends SuspendableReadChannel, Configurable {
     /**
      * Receive a message.

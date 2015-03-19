@@ -27,8 +27,9 @@ import java.util.IdentityHashMap;
 import java.util.Properties;
 import java.io.Serializable;
 
-import static org.xnio._private.Messages.msg;
 import static org.xnio._private.Messages.optionParseMsg;
+
+import org.wildfly.common.Assert;
 
 /**
  * An immutable map of options to option values.  No {@code null} keys or values are permitted.
@@ -156,12 +157,8 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
      * @since 3.0
      */
     public static <T> OptionMap create(Option<T> option, T value) {
-        if (option == null) {
-            throw msg.nullParameter("option");
-        }
-        if (value == null) {
-            throw msg.nullParameter("value");
-        }
+        Assert.checkNotNullParam("option", option);
+        Assert.checkNotNullParam("value", value);
         return new OptionMap(Collections.<Option<?>, Object>singletonMap(option, option.cast(value)));
     }
 
@@ -180,18 +177,10 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
      * @since 3.0
      */
     public static <T1, T2> OptionMap create(Option<T1> option1, T1 value1, Option<T2> option2, T2 value2) {
-        if (option1 == null) {
-            throw msg.nullParameter("option1");
-        }
-        if (value1 == null) {
-            throw msg.nullParameter("value1");
-        }
-        if (option2 == null) {
-            throw msg.nullParameter("option2");
-        }
-        if (value2 == null) {
-            throw msg.nullParameter("value2");
-        }
+        Assert.checkNotNullParam("option1", option1);
+        Assert.checkNotNullParam("value1", value1);
+        Assert.checkNotNullParam("option2", option2);
+        Assert.checkNotNullParam("value2", value2);
         if (option1 == option2) {
             return create(option2, value2);
         }
@@ -356,12 +345,8 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public <T> Builder set(Option<T> key, T value) {
-            if (key == null) {
-                throw msg.nullParameter("key");
-            }
-            if (value == null) {
-                throw msg.nullParameter("value");
-            }
+            Assert.checkNotNullParam("key", key);
+            Assert.checkNotNullParam("value", value);
             list.add(new OVPair<T>(key, value));
             return this;
         }
@@ -374,9 +359,7 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public Builder set(Option<Integer> key, int value) {
-            if (key == null) {
-                throw msg.nullParameter("key");
-            }
+            Assert.checkNotNullParam("key", key);
             list.add(new OVPair<Integer>(key, Integer.valueOf(value)));
             return this;
         }
@@ -389,9 +372,7 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public Builder setSequence(Option<Sequence<Integer>> key, int... values) {
-            if (key == null) {
-                throw msg.nullParameter("key");
-            }
+            Assert.checkNotNullParam("key", key);
             Integer[] a = new Integer[values.length];
             for (int i = 0; i < values.length; i++) {
                 a[i] = Integer.valueOf(values[i]);
@@ -408,9 +389,7 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public Builder set(Option<Long> key, long value) {
-            if (key == null) {
-                throw msg.nullParameter("key");
-            }
+            Assert.checkNotNullParam("key", key);
             list.add(new OVPair<Long>(key, Long.valueOf(value)));
             return this;
         }
@@ -423,9 +402,8 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public Builder setSequence(Option<Sequence<Long>> key, long... values) {
-            if (key == null) {
-                throw msg.nullParameter("key");
-            }
+            Assert.checkNotNullParam("key", key);
+            Assert.checkNotNullParam("values", values);
             Long[] a = new Long[values.length];
             for (int i = 0; i < values.length; i++) {
                 a[i] = Long.valueOf(values[i]);
@@ -442,9 +420,7 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public Builder set(Option<Boolean> key, boolean value) {
-            if (key == null) {
-                throw msg.nullParameter("key");
-            }
+            Assert.checkNotNullParam("key", key);
             list.add(new OVPair<Boolean>(key, Boolean.valueOf(value)));
             return this;
         }
@@ -458,9 +434,8 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public Builder setSequence(Option<Sequence<Boolean>> key, boolean... values) {
-            if (key == null) {
-                throw msg.nullParameter("key");
-            }
+            Assert.checkNotNullParam("key", key);
+            Assert.checkNotNullParam("values", values);
             Boolean[] a = new Boolean[values.length];
             for (int i = 0; i < values.length; i++) {
                 a[i] = Boolean.valueOf(values[i]);
@@ -478,9 +453,8 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public <T> Builder setSequence(Option<Sequence<T>> key, T... values) {
-            if (key == null) {
-                throw msg.nullParameter("key");
-            }
+            Assert.checkNotNullParam("key", key);
+            Assert.checkNotNullParam("values", values);
             list.add(new OVPair<Sequence<T>>(key, Sequence.of(values)));
             return this;
         }
@@ -499,6 +473,7 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @throws ClassCastException if any entries of the map are not valid option-value pairs
          */
         public Builder add(Map<?, ?> map) throws ClassCastException {
+            Assert.checkNotNullParam("map", map);
             for (Object key : map.keySet()) {
                 final Option<?> option = Option.class.cast(key);
                 copy(map, option);
@@ -518,6 +493,7 @@ public final class OptionMap implements Iterable<Option<?>>, Serializable {
          * @return this builder
          */
         public Builder addAll(OptionMap optionMap) {
+            Assert.checkNotNullParam("optionMap", optionMap);
             for (Option<?> option : optionMap) {
                 copy(optionMap, option);
             }

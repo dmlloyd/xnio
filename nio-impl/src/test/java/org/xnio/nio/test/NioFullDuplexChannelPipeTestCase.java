@@ -30,8 +30,6 @@ import org.jboss.logging.Logger;
 import org.junit.Test;
 import org.xnio.ChannelListener;
 import org.xnio.ChannelPipe;
-import org.xnio.IoUtils;
-import org.xnio.Options;
 import org.xnio.XnioWorker;
 import org.xnio.channels.StreamChannel;
 

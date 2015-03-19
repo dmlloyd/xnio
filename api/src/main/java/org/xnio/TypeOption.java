@@ -19,7 +19,7 @@
 
 package org.xnio;
 
-import static org.xnio._private.Messages.msg;
+import org.wildfly.common.Assert;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
@@ -33,9 +33,7 @@ final class TypeOption<T> extends Option<Class<? extends T>> {
 
     TypeOption(final Class<?> declClass, final String name, final Class<T> type) {
         super(declClass, name);
-        if (type == null) {
-            throw msg.nullParameter("type");
-        }
+        Assert.checkNotNullParam("type", type);
         this.type = type;
         parser = Option.getClassParser(type);
     }
@@ -45,6 +43,6 @@ final class TypeOption<T> extends Option<Class<? extends T>> {
     }
 
     public Class<? extends T> parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-        return (Class<? extends T>) parser.parseValue(string, classLoader);
+        return parser.parseValue(string, classLoader);
     }
 }

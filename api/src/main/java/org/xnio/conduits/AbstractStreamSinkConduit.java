@@ -28,6 +28,7 @@ import org.xnio.channels.StreamSourceChannel;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class AbstractStreamSinkConduit<D extends StreamSinkConduit> extends AbstractSinkConduit<D> implements StreamSinkConduit {
 
     /**

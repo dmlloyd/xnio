@@ -28,6 +28,7 @@ import org.xnio.conduits.MessageSinkConduit;
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class SaslWrappingConduit extends AbstractMessageSinkConduit<MessageSinkConduit> implements MessageSinkConduit {
     private final SaslWrapper wrapper;
     private ByteBuffer buffer;

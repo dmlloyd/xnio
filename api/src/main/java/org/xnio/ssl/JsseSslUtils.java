@@ -42,13 +42,13 @@ import javax.net.ssl.TrustManager;
 import org.xnio.OptionMap;
 import org.xnio.Options;
 import org.xnio.Sequence;
-import org.xnio.Xnio;
 
 /**
  * Utility methods for creating JSSE constructs and configuring them via XNIO option maps.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class JsseSslUtils {
 
     private JsseSslUtils() {
@@ -175,7 +175,7 @@ public final class JsseSslUtils {
     }
 
     static String getHostNameNoResolve(InetSocketAddress socketAddress) {
-        if (Xnio.NIO2) {
+        if (true) {
             return socketAddress.getHostString();
         } else {
             String hostName;

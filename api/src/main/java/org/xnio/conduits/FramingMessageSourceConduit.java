@@ -31,6 +31,7 @@ import org.xnio.Pooled;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class FramingMessageSourceConduit extends AbstractSourceConduit<StreamSourceConduit> implements MessageSourceConduit {
     private final Pooled<ByteBuffer> receiveBuffer;
     private boolean ready;

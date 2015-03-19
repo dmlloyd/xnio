@@ -26,6 +26,7 @@ import org.xnio.XnioIoThread;
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class AbstractSynchronizedSinkConduit<D extends SinkConduit> extends AbstractSynchronizedConduit<D> implements SinkConduit {
 
     protected AbstractSynchronizedSinkConduit(final D next) {

@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface BufferAllocator<B extends Buffer> {
 
     /**
@@ -43,18 +44,10 @@ public interface BufferAllocator<B extends Buffer> {
     /**
      * A simple allocator for heap-array-backed byte buffers.
      */
-    BufferAllocator<ByteBuffer> BYTE_BUFFER_ALLOCATOR = new BufferAllocator<ByteBuffer>() {
-        public ByteBuffer allocate(final int size) {
-            return ByteBuffer.allocate(size);
-        }
-    };
+    BufferAllocator<ByteBuffer> BYTE_BUFFER_ALLOCATOR = ByteBuffer::allocate;
 
     /**
      * A simple allocator for direct byte buffers.
      */
-    BufferAllocator<ByteBuffer> DIRECT_BYTE_BUFFER_ALLOCATOR = new BufferAllocator<ByteBuffer>() {
-        public ByteBuffer allocate(final int size) {
-            return ByteBuffer.allocateDirect(size);
-        }
-    };
+    BufferAllocator<ByteBuffer> DIRECT_BYTE_BUFFER_ALLOCATOR = ByteBuffer::allocateDirect;
 }

@@ -23,6 +23,7 @@ package org.xnio.sasl;
  *
  * @see javax.security.sasl.Sasl#STRENGTH
  */
+@Deprecated
 public enum SaslStrength {
 
     /**

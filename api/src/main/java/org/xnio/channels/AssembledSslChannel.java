@@ -32,6 +32,7 @@ import javax.net.ssl.SSLSession;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public class AssembledSslChannel extends AssembledConnectedChannel implements SslChannel {
 
     private final SslChannel sslChannel;

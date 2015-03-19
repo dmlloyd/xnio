@@ -22,8 +22,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.xnio.channels.AcceptingChannel;
-import org.xnio.channels.ConnectedStreamChannel;
 import org.xnio.mock.XnioMock;
 
 import java.io.File;
@@ -50,8 +48,6 @@ public class FileSystemWatcherTestCase {
 
     File rootDir;
     File existingSubDir;
-
-    protected AcceptingChannel<? extends ConnectedStreamChannel> server;
 
     private Xnio createXnio() {
         return XnioMock.getInstance();

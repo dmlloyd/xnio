@@ -47,6 +47,7 @@ public final class Options {
      * Enable multicast support for a socket.  The value type for this option is {@code boolean}.  Note that some
      * implementations may add overhead when multicast sockets are in use.
      */
+    @Deprecated
     public static final Option<Boolean> MULTICAST = Option.simple(Options.class, "MULTICAST", Boolean.class);
 
     /**
@@ -149,6 +150,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Boolean> SSL_ENABLED = Option.simple(Options.class, "SSL_ENABLED", Boolean.class);
 
     /**
@@ -156,6 +158,7 @@ public final class Options {
      *
      * @since 2.0
      */
+    @Deprecated
     public static final Option<SslClientAuthMode> SSL_CLIENT_AUTH_MODE = Option.simple(Options.class, "SSL_CLIENT_AUTH_MODE", SslClientAuthMode.class);
 
     /**
@@ -164,6 +167,7 @@ public final class Options {
      *
      * @since 2.0
      */
+    @Deprecated
     public static final Option<Sequence<String>> SSL_ENABLED_CIPHER_SUITES = Option.sequence(Options.class, "SSL_ENABLED_CIPHER_SUITES", String.class);
 
     /**
@@ -171,6 +175,7 @@ public final class Options {
      *
      * @since 2.0
      */
+    @Deprecated
     public static final Option<Sequence<String>> SSL_SUPPORTED_CIPHER_SUITES = Option.sequence(Options.class, "SSL_SUPPORTED_CIPHER_SUITES", String.class);
 
     /**
@@ -179,6 +184,7 @@ public final class Options {
      *
      * @since 2.0
      */
+    @Deprecated
     public static final Option<Sequence<String>> SSL_ENABLED_PROTOCOLS = Option.sequence(Options.class, "SSL_ENABLED_PROTOCOLS", String.class);
 
     /**
@@ -186,6 +192,7 @@ public final class Options {
      *
      * @since 2.0
      */
+    @Deprecated
     public static final Option<Sequence<String>> SSL_SUPPORTED_PROTOCOLS = Option.sequence(Options.class, "SSL_SUPPORTED_PROTOCOLS", String.class);
 
     /**
@@ -193,6 +200,7 @@ public final class Options {
      *
      * @since 2.0
      */
+    @Deprecated
     public static final Option<String> SSL_PROVIDER = Option.simple(Options.class, "SSL_PROVIDER", String.class);
 
     /**
@@ -200,6 +208,7 @@ public final class Options {
      *
      * @since 2.1
      */
+    @Deprecated
     public static final Option<String> SSL_PROTOCOL = Option.simple(Options.class, "SSL_PROTOCOL", String.class);
 
     /**
@@ -207,6 +216,7 @@ public final class Options {
      *
      * @since 2.0
      */
+    @Deprecated
     public static final Option<Boolean> SSL_ENABLE_SESSION_CREATION = Option.simple(Options.class, "SSL_ENABLE_SESSION_CREATION", Boolean.class);
 
     /**
@@ -215,6 +225,7 @@ public final class Options {
      *
      * @since 2.0
      */
+    @Deprecated
     public static final Option<Boolean> SSL_USE_CLIENT_MODE = Option.simple(Options.class, "SSL_USE_CLIENT_MODE", Boolean.class);
 
     /**
@@ -222,6 +233,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Integer> SSL_CLIENT_SESSION_CACHE_SIZE = Option.simple(Options.class, "SSL_CLIENT_SESSION_CACHE_SIZE", Integer.class);
 
     /**
@@ -229,6 +241,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Integer> SSL_CLIENT_SESSION_TIMEOUT = Option.simple(Options.class, "SSL_CLIENT_SESSION_TIMEOUT", Integer.class);
 
     /**
@@ -236,6 +249,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Integer> SSL_SERVER_SESSION_CACHE_SIZE = Option.simple(Options.class, "SSL_SERVER_SESSION_CACHE_SIZE", Integer.class);
 
     /**
@@ -243,6 +257,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Integer> SSL_SERVER_SESSION_TIMEOUT = Option.simple(Options.class, "SSL_SERVER_SESSION_TIMEOUT", Integer.class);
 
     /**
@@ -250,6 +265,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Sequence<Class<? extends KeyManager>>> SSL_JSSE_KEY_MANAGER_CLASSES = Option.typeSequence(Options.class, "SSL_JSSE_KEY_MANAGER_CLASSES", KeyManager.class);
 
     /**
@@ -257,6 +273,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Sequence<Class<? extends TrustManager>>> SSL_JSSE_TRUST_MANAGER_CLASSES = Option.typeSequence(Options.class, "SSL_JSSE_TRUST_MANAGER_CLASSES", TrustManager.class);
 
     /**
@@ -264,6 +281,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<OptionMap> SSL_RNG_OPTIONS = Option.simple(Options.class, "SSL_RNG_OPTIONS", OptionMap.class);
 
     /**
@@ -271,6 +289,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Integer> SSL_PACKET_BUFFER_SIZE = Option.simple(Options.class, "SSL_PACKET_BUFFER_SIZE", Integer.class);
 
     /**
@@ -278,6 +297,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Integer> SSL_APPLICATION_BUFFER_SIZE = Option.simple(Options.class, "SSL_APPLICATION_BUFFER_SIZE", Integer.class);
 
     /**
@@ -285,6 +305,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Integer> SSL_PACKET_BUFFER_REGION_SIZE = Option.simple(Options.class, "SSL_PACKET_BUFFER_REGION_SIZE", Integer.class);
 
     /**
@@ -292,6 +313,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Integer> SSL_APPLICATION_BUFFER_REGION_SIZE = Option.simple(Options.class, "SSL_APPLICATION_BUFFER_REGION_SIZE", Integer.class);
 
     /**
@@ -299,6 +321,7 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Boolean> SSL_STARTTLS = Option.simple(Options.class, "SSL_STARTTLS", Boolean.class);
 
     /**
@@ -306,24 +329,28 @@ public final class Options {
      * for the use of certain cipher suites (such as Kerberos).  If not given, defaults to the host name of the
      * socket address of the peer.
      */
+    @Deprecated
     public static final Option<String> SSL_PEER_HOST_NAME = Option.simple(Options.class, "SSL_PEER_HOST_NAME", String.class);
 
     /**
      * Specify the (non-authoritative) port number of the peer port number to use for the purposes of session reuse, as well as
      * for the use of certain cipher suites.  If not given, defaults to the port number of the socket address of the peer.
      */
+    @Deprecated
     public static final Option<Integer> SSL_PEER_PORT = Option.simple(Options.class, "SSL_PEER_PORT", Integer.class);
 
     /**
      * Hint to the SSL engine that the key manager implementation(s) is/are non-blocking, so they can be executed
      * in the I/O thread, possibly improving performance by decreasing latency.
      */
+    @Deprecated
     public static final Option<Boolean> SSL_NON_BLOCKING_KEY_MANAGER = Option.simple(Options.class, "SSL_NON_BLOCKING_KEY_MANAGER", Boolean.class);
 
     /**
      * Hint to the SSL engine that the trust manager implementation(s) is/are non-blocking, so they can be executed
      * in the I/O thread, possibly improving performance by decreasing latency.
      */
+    @Deprecated
     public static final Option<Boolean> SSL_NON_BLOCKING_TRUST_MANAGER = Option.simple(Options.class, "SSL_NON_BLOCKING_TRUST_MANAGER", Boolean.class);
 
     /**
@@ -331,12 +358,14 @@ public final class Options {
      *
      * @since 3.0
      */
+    @Deprecated
     public static final Option<Boolean> USE_DIRECT_BUFFERS = Option.simple(Options.class, "USE_DIRECT_BUFFERS", Boolean.class);
 
     /**
      * Determine whether the channel is encrypted, or employs some other level of security.  The interpretation of this flag
      * is specific to the channel in question; however, whatever the channel type, this flag is generally read-only.
      */
+    @Deprecated
     public static final Option<Boolean> SECURE = Option.simple(Options.class, "SECURE", Boolean.class);
 
     /**
@@ -344,6 +373,7 @@ public final class Options {
      *
      * @see Sasl#POLICY_FORWARD_SECRECY
      */
+    @Deprecated
     public static final Option<Boolean> SASL_POLICY_FORWARD_SECRECY = Option.simple(Options.class, "SASL_POLICY_FORWARD_SECRECY", Boolean.class);
 
     /**
@@ -351,6 +381,7 @@ public final class Options {
      *
      * @see Sasl#POLICY_NOACTIVE
      */
+    @Deprecated
     public static final Option<Boolean> SASL_POLICY_NOACTIVE = Option.simple(Options.class, "SASL_POLICY_NOACTIVE", Boolean.class);
 
     /**
@@ -358,6 +389,7 @@ public final class Options {
      *
      * @see Sasl#POLICY_NOANONYMOUS
      */
+    @Deprecated
     public static final Option<Boolean> SASL_POLICY_NOANONYMOUS = Option.simple(Options.class, "SASL_POLICY_NOANONYMOUS", Boolean.class);
 
     /**
@@ -365,6 +397,7 @@ public final class Options {
      *
      * @see Sasl#POLICY_NODICTIONARY
      */
+    @Deprecated
     public static final Option<Boolean> SASL_POLICY_NODICTIONARY = Option.simple(Options.class, "SASL_POLICY_NODICTIONARY", Boolean.class);
 
     /**
@@ -372,6 +405,7 @@ public final class Options {
      *
      * @see Sasl#POLICY_NOPLAINTEXT
      */
+    @Deprecated
     public static final Option<Boolean> SASL_POLICY_NOPLAINTEXT = Option.simple(Options.class, "SASL_POLICY_NOPLAINTEXT", Boolean.class);
 
     /**
@@ -379,6 +413,7 @@ public final class Options {
      *
      * @see Sasl#POLICY_PASS_CREDENTIALS
      */
+    @Deprecated
     public static final Option<Boolean> SASL_POLICY_PASS_CREDENTIALS = Option.simple(Options.class, "SASL_POLICY_PASS_CREDENTIALS", Boolean.class);
 
     /**
@@ -386,6 +421,7 @@ public final class Options {
      *
      * @see Sasl#QOP
      */
+    @Deprecated
     public static final Option<Sequence<SaslQop>> SASL_QOP = Option.sequence(Options.class, "SASL_QOP", SaslQop.class);
 
     /**
@@ -393,6 +429,7 @@ public final class Options {
      *
      * @see Sasl#STRENGTH
      */
+    @Deprecated
     public static final Option<SaslStrength> SASL_STRENGTH = Option.simple(Options.class, "SASL_STRENGTH", SaslStrength.class);
 
     /**
@@ -400,6 +437,7 @@ public final class Options {
      *
      * @see Sasl#SERVER_AUTH
      */
+    @Deprecated
     public static final Option<Boolean> SASL_SERVER_AUTH = Option.simple(Options.class, "SASL_SERVER_AUTH", Boolean.class);
 
     /**
@@ -407,21 +445,25 @@ public final class Options {
      *
      * @see Sasl#REUSE
      */
+    @Deprecated
     public static final Option<Boolean> SASL_REUSE = Option.simple(Options.class, "SASL_REUSE", Boolean.class);
 
     /**
      * A list of SASL mechanisms, in decreasing order of preference.
      */
+    @Deprecated
     public static final Option<Sequence<String>> SASL_MECHANISMS = Option.sequence(Options.class, "SASL_MECHANISMS", String.class);
 
     /**
      * A list of disallowed SASL mechanisms.
      */
+    @Deprecated
     public static final Option<Sequence<String>> SASL_DISALLOWED_MECHANISMS = Option.sequence(Options.class, "SASL_DISALLOWED_MECHANISMS", String.class);
 
     /**
      * A list of provider specific SASL properties.
      */
+    @Deprecated
     public static final Option<Sequence<Property>> SASL_PROPERTIES = Option.sequence(Options.class, "SASL_PROPERTIES", Property.class);
 
     /**
@@ -494,17 +536,6 @@ public final class Options {
     public static final Option<Boolean> WORKER_ESTABLISH_WRITING = Option.simple(Options.class, "WORKER_ESTABLISH_WRITING", Boolean.class);
 
     /**
-     * Specify the number of accept threads a single socket server should have.  Specifying more than one can result in spurious wakeups
-     * for a socket server under low connection volume, but higher throughput at high connection volume.  The minimum value
-     * is 1, and the maximum value is equal to the number of available worker threads.
-     *
-     * @deprecated This option is now ignored.  All I/O threads are used for accept, except in the case of split read/write
-     * threads, in which case only read or write threads will be used as determined by {@link #WORKER_ESTABLISH_WRITING}.
-     */
-    @Deprecated
-    public static final Option<Integer> WORKER_ACCEPT_THREADS = Option.simple(Options.class, "WORKER_ACCEPT_THREADS", Integer.class);
-
-    /**
      * Specify the number of "core" threads for the worker task thread pool.
      */
     public static final Option<Integer> WORKER_TASK_CORE_THREADS = Option.simple(Options.class, "WORKER_TASK_CORE_THREADS", Integer.class);
@@ -529,6 +560,7 @@ public final class Options {
      * on buffered size or time.  An explicit {@link SuspendableWriteChannel#flush()} will still cause
      * the channel to flush its contents immediately.
      */
+    @Deprecated
     public static final Option<Boolean> CORK = Option.simple(Options.class, "CORK", Boolean.class);
 
     /**
@@ -552,6 +584,11 @@ public final class Options {
      * The compression type to apply for compressing streams and channels.
      */
     public static final Option<CompressionType> COMPRESSION_TYPE = Option.simple(Options.class, "COMPRESSION_TYPE", CompressionType.class);
+
+    /**
+     * The compression strategy to use for compressing streams and channels.
+     */
+    public static final Option<CompressionStrategy> COMPRESSION_STRATEGY = Option.simple(Options.class, "COMPRESSION_STRATEGY", CompressionStrategy.class);
 
     /**
      * The number of balancing tokens, if connection-balancing is enabled.  Must be less than the number of I/O threads,

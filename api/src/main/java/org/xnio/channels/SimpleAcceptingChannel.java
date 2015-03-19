@@ -29,6 +29,7 @@ import org.xnio.ChannelListener;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface SimpleAcceptingChannel<C extends CloseableChannel> extends SuspendableAcceptChannel {
 
     /**

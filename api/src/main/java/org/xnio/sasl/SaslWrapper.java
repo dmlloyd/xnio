@@ -31,6 +31,7 @@ import javax.security.sasl.SaslServer;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class SaslWrapper {
 
     /**
@@ -150,6 +151,7 @@ public abstract class SaslWrapper {
     }
 }
 
+@Deprecated
 final class SaslClientWrapper extends SaslWrapper {
     private final SaslClient saslClient;
 
@@ -174,6 +176,7 @@ final class SaslClientWrapper extends SaslWrapper {
     }
 }
 
+@Deprecated
 final class SaslServerWrapper extends SaslWrapper {
     private final SaslServer saslServer;
 

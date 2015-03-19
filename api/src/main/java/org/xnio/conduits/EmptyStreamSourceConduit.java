@@ -31,6 +31,7 @@ import org.xnio.channels.StreamSinkChannel;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class EmptyStreamSourceConduit implements StreamSourceConduit {
     private final XnioWorker worker;
     private final XnioIoThread readThread;

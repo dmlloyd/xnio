@@ -72,6 +72,7 @@ public class HttpUpgrade {
      * @param handshakeChecker A handshake checker that can be supplied to verify that the server returned a valid response to the upgrade request
      * @return An IoFuture of the connection
      */
+    @Deprecated
     public static IoFuture<SslConnection> performUpgrade(final XnioWorker worker, XnioSsl ssl, InetSocketAddress bindAddress, URI uri, final Map<String, String> headers, ChannelListener<? super SslConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap, HandshakeChecker handshakeChecker) {
         return new HttpUpgradeState<SslConnection>(worker, ssl, bindAddress, uri, headers, openListener, bindListener, optionMap, handshakeChecker).doUpgrade();
     }
@@ -91,6 +92,7 @@ public class HttpUpgrade {
      * @param handshakeChecker A handshake checker that can be supplied to verify that the server returned a valid response to the upgrade request
      * @return An IoFuture of the connection
      */
+    @Deprecated
     public static IoFuture<SslConnection> performUpgrade(final XnioWorker worker, XnioSsl ssl, InetSocketAddress bindAddress, URI uri, final Map<String, List<String>> headers, ChannelListener<? super SslConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap, ExtendedHandshakeChecker handshakeChecker) {
         return new HttpUpgradeState<SslConnection>(worker, ssl, bindAddress, uri, headers, openListener, bindListener, optionMap, handshakeChecker).doUpgrade();
     }
@@ -108,6 +110,7 @@ public class HttpUpgrade {
      * @param handshakeChecker A handshake checker that can be supplied to verify that the server returned a valid response to the upgrade request
      * @return An IoFuture of the connection
      */
+    @Deprecated
     public static IoFuture<StreamConnection> performUpgrade(final XnioWorker worker, InetSocketAddress bindAddress, URI uri, final Map<String, String> headers, ChannelListener<? super StreamConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap, HandshakeChecker handshakeChecker) {
         return new HttpUpgradeState<StreamConnection>(worker, null, bindAddress, uri, headers, openListener, bindListener, optionMap, handshakeChecker).doUpgrade();
     }
@@ -125,6 +128,7 @@ public class HttpUpgrade {
      * @param handshakeChecker A handshake checker that can be supplied to verify that the server returned a valid response to the upgrade request
      * @return An IoFuture of the connection
      */
+    @Deprecated
     public static IoFuture<StreamConnection> performUpgrade(final XnioWorker worker, InetSocketAddress bindAddress, URI uri, final Map<String, List<String>> headers, ChannelListener<? super StreamConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap, ExtendedHandshakeChecker handshakeChecker) {
         return new HttpUpgradeState<StreamConnection>(worker, null, bindAddress, uri, headers, openListener, bindListener, optionMap, handshakeChecker).doUpgrade();
     }
@@ -140,6 +144,7 @@ public class HttpUpgrade {
      * @param handshakeChecker A handshake checker that can be supplied to verify that the server returned a valid response to the upgrade request
      * @return An IoFuture of the connection
      */
+    @Deprecated
     public static <T extends StreamConnection> IoFuture<T> performUpgrade(final T connection, URI uri, final Map<String, String> headers, ChannelListener<? super StreamConnection> openListener, HandshakeChecker handshakeChecker) {
         return new HttpUpgradeState<T>(connection, uri, headers, openListener, handshakeChecker).upgradeExistingConnection();
     }
@@ -154,6 +159,7 @@ public class HttpUpgrade {
      * @param handshakeChecker A handshake checker that can be supplied to verify that the server returned a valid response to the upgrade request
      * @return An IoFuture of the connection
      */
+    @Deprecated
     public static <T extends StreamConnection> IoFuture<T> performUpgrade(final T connection, URI uri, final Map<String, List<String>> headers, ChannelListener<? super StreamConnection> openListener, ExtendedHandshakeChecker handshakeChecker) {
         return new HttpUpgradeState<T>(connection, uri, headers, openListener, handshakeChecker).upgradeExistingConnection();
     }

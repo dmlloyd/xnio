@@ -49,25 +49,11 @@ public final class Version {
         Properties versionProps = new Properties();
         String jarName = "(unknown)";
         String versionString = "(unknown)";
-        try {
-            final InputStream stream = Version.class.getResourceAsStream("Version.properties");
-            try {
-                final InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
-                try {
-                    versionProps.load(reader);
-                    jarName = versionProps.getProperty("jarName", jarName);
-                    versionString = versionProps.getProperty("version", versionString);
-                } finally {
-                    try {
-                        reader.close();
-                    } catch (Throwable ignored) {
-                    }
-                }
-            } finally {
-                try {
-                    stream.close();
-                } catch (Throwable ignored) {
-                }
+        try (final InputStream stream = Version.class.getResourceAsStream("Version.properties")) {
+            try (final InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                versionProps.load(reader);
+                jarName = versionProps.getProperty("jarName", jarName);
+                versionString = versionProps.getProperty("version", versionString);
             }
         } catch (IOException ignored) {
         }

@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.TimeUnit;
 
+import org.wildfly.common.Assert;
 import org.xnio.channels.StreamSourceChannel;
 import org.xnio.conduits.AbstractStreamSinkConduit;
 import org.xnio.conduits.ConduitWritableByteChannel;
@@ -36,6 +37,7 @@ import org.xnio.conduits.StreamSinkConduit;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
+@Deprecated
 final class JsseSslStreamSinkConduit extends AbstractStreamSinkConduit<StreamSinkConduit> {
 
     private final JsseSslConduitEngine sslEngine;
@@ -43,9 +45,7 @@ final class JsseSslStreamSinkConduit extends AbstractStreamSinkConduit<StreamSin
 
     protected JsseSslStreamSinkConduit(StreamSinkConduit next, JsseSslConduitEngine sslEngine, boolean tls) {
         super(next);
-        if (sslEngine == null) {
-            throw msg.nullParameter("sslEngine");
-        }
+        Assert.checkNotNullParam("sslEngine", sslEngine);
         this.sslEngine = sslEngine;
         this.tls = tls;
     }

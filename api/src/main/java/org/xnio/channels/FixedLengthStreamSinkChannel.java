@@ -23,6 +23,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.TimeUnit;
+
+import org.wildfly.common.Assert;
 import org.xnio.ChannelListener;
 import org.xnio.ChannelListeners;
 import org.xnio.Option;
@@ -40,6 +42,7 @@ import static org.xnio._private.Messages.msg;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class FixedLengthStreamSinkChannel implements StreamSinkChannel, ProtectedWrappedChannel<StreamSinkChannel>, WriteListenerSettable<FixedLengthStreamSinkChannel>, CloseListenerSettable<FixedLengthStreamSinkChannel> {
     private final StreamSinkChannel delegate;
     private final Object guard;
@@ -67,12 +70,8 @@ public final class FixedLengthStreamSinkChannel implements StreamSinkChannel, Pr
      * @param guard the guard object to use
      */
     public FixedLengthStreamSinkChannel(final StreamSinkChannel delegate, final long contentLength, final boolean configurable, final boolean propagateClose, final ChannelListener<? super FixedLengthStreamSinkChannel> finishListener, final Object guard) {
-        if (contentLength < 0L) {
-            throw msg.parameterOutOfRange("contentLength");
-        }
-        if (delegate == null) {
-            throw msg.nullParameter("delegate");
-        }
+        Assert.checkMinimumParameter("contentLength", 0L, contentLength);
+        Assert.checkNotNullParam("delegate", delegate);
         this.guard = guard;
         this.delegate = delegate;
         this.finishListener = finishListener;

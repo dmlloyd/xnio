@@ -38,7 +38,7 @@ import org.xnio.OptionMap;
 import org.xnio.Options;
 import org.xnio.Xnio;
 import org.xnio.XnioWorker;
-import org.xnio.channels.MulticastMessageChannel;
+import org.xnio.channels.MulticastSocketChannel;
 import org.xnio.channels.SocketAddressBuffer;
 
 /**
@@ -56,8 +56,8 @@ public class UdpChannelTestCase {
     @Test
     public void addressRetrieval() throws IOException {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
-        final MulticastMessageChannel server1 = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
-        final MulticastMessageChannel server2 = xnioWorker.createUdpServer(address2, OptionMap.EMPTY);
+        final MulticastSocketChannel server1 = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server2 = xnioWorker.createUdpServer(address2, OptionMap.EMPTY);
         try {
             assertEquals(address1, server1.getLocalAddress());
             assertEquals(address1, server1.getLocalAddress(InetSocketAddress.class));
@@ -75,8 +75,8 @@ public class UdpChannelTestCase {
     @Test
     public void testSimpleConnection() throws IOException {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
-        final MulticastMessageChannel server1 = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
-        final MulticastMessageChannel server2 = xnioWorker.createUdpServer(address2, OptionMap.EMPTY);
+        final MulticastSocketChannel server1 = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server2 = xnioWorker.createUdpServer(address2, OptionMap.EMPTY);
         assertTrue(server1.isOpen());
         assertTrue(server2.isOpen());
 
@@ -117,8 +117,8 @@ public class UdpChannelTestCase {
     public void testChannelWithOneThreadOnly() throws IllegalArgumentException, IOException {
         final XnioWorker xnioWorker1 = xnio.createWorker(OptionMap.create(Options.WORKER_IO_THREADS, 1));
         final XnioWorker xnioWorker2 = xnio.createWorker(OptionMap.create(Options.WORKER_IO_THREADS, 1));
-        final MulticastMessageChannel server1 = xnioWorker1.createUdpServer(address1, OptionMap.EMPTY);
-        final MulticastMessageChannel server2 = xnioWorker2.createUdpServer(address2, OptionMap.EMPTY);
+        final MulticastSocketChannel server1 = xnioWorker1.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server2 = xnioWorker2.createUdpServer(address2, OptionMap.EMPTY);
         assertTrue(server1.isOpen());
         assertTrue(server2.isOpen());
 
@@ -145,7 +145,7 @@ public class UdpChannelTestCase {
             assertTrue(server1.isOpen());
             assertTrue(server2.isOpen());
 
-            TestChannelListener<MulticastMessageChannel> server1Listener = new TestChannelListener<MulticastMessageChannel>();
+            TestChannelListener<MulticastSocketChannel> server1Listener = new TestChannelListener<MulticastSocketChannel>();
             server1.getWriteSetter().set(server1Listener);
             server1.resumeWrites();
             server1.wakeupWrites();
@@ -157,7 +157,7 @@ public class UdpChannelTestCase {
             assertFalse(server1.isReadResumed());
             assertFalse(server1.isWriteResumed());
 
-            TestChannelListener<MulticastMessageChannel> server2Listener = new TestChannelListener<MulticastMessageChannel>();
+            TestChannelListener<MulticastSocketChannel> server2Listener = new TestChannelListener<MulticastSocketChannel>();
             server2.getReadSetter().set(server2Listener);
             server2.resumeReads();
             server2.wakeupReads();
@@ -184,8 +184,8 @@ public class UdpChannelTestCase {
     public void communicateUsingClosedChannel() throws IOException {
         final XnioWorker xnioWorker1 = xnio.createWorker(OptionMap.create(Options.WORKER_READ_THREADS, 0));
         final XnioWorker xnioWorker2 = xnio.createWorker(OptionMap.create(Options.WORKER_WRITE_THREADS, 0));
-        final MulticastMessageChannel server1 = xnioWorker1.createUdpServer(address1, OptionMap.EMPTY);
-        final MulticastMessageChannel server2 = xnioWorker2.createUdpServer(address2, OptionMap.EMPTY);
+        final MulticastSocketChannel server1 = xnioWorker1.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server2 = xnioWorker2.createUdpServer(address2, OptionMap.EMPTY);
         assertTrue(server1.isOpen());
         assertTrue(server2.isOpen());
         server1.close();
@@ -248,7 +248,7 @@ public class UdpChannelTestCase {
     public void sendEmptyBuffer() throws IOException {
         @SuppressWarnings("deprecation")
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.create(Options.WORKER_READ_THREADS, 0));
-        final MulticastMessageChannel server = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
         assertTrue(server.isOpen());
         try {
             assertFalse(server.sendTo(address2, Buffers.EMPTY_BYTE_BUFFER));
@@ -261,8 +261,8 @@ public class UdpChannelTestCase {
     @Test
     public void sendAndReceiveMultipleBuffers() throws IOException {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
-        final MulticastMessageChannel server1 = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
-        final MulticastMessageChannel server2 = xnioWorker.createUdpServer(address2, OptionMap.EMPTY);
+        final MulticastSocketChannel server1 = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server2 = xnioWorker.createUdpServer(address2, OptionMap.EMPTY);
         assertTrue(server1.isOpen());
         assertTrue(server2.isOpen());
 
@@ -333,7 +333,7 @@ public class UdpChannelTestCase {
     @Test
     public void sendTooBigBuffer() throws IOException {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
-        final MulticastMessageChannel server = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
         assertTrue(server.isOpen());
 
         try {
@@ -357,7 +357,7 @@ public class UdpChannelTestCase {
     @Test
     public void shutdownReadsAndWrite() throws IOException {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
-        final MulticastMessageChannel server = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
 
         try {
             UnsupportedOperationException expected = null;
@@ -384,8 +384,8 @@ public class UdpChannelTestCase {
     @Test
     public void awaitReadableWritable() throws IOException, InterruptedException {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
-        final MulticastMessageChannel server1 = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
-        final MulticastMessageChannel server2 = xnioWorker.createUdpServer(address2, OptionMap.EMPTY);
+        final MulticastSocketChannel server1 = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server2 = xnioWorker.createUdpServer(address2, OptionMap.EMPTY);
 
         try {
             server1.awaitWritable(); 
@@ -472,7 +472,7 @@ public class UdpChannelTestCase {
     @Test
     public void optionSetup() throws IOException {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
-        final MulticastMessageChannel server = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
+        final MulticastSocketChannel server = xnioWorker.createUdpServer(address1, OptionMap.EMPTY);
         final Option<?>[] unsupportedOptions = OptionHelper.getNotSupportedOptions(Options.BROADCAST,
                 Options.RECEIVE_BUFFER, Options.SEND_BUFFER, Options.IP_TRAFFIC_CLASS, Options.MULTICAST_TTL);
         try {
@@ -515,15 +515,15 @@ public class UdpChannelTestCase {
     }
 
     private class ReadableWaiter implements Runnable {
-        private final MulticastMessageChannel channel;
+        private final MulticastSocketChannel channel;
         private final long timeout;
         private final TimeUnit timeoutUnit;
 
-        public ReadableWaiter(MulticastMessageChannel c) {
+        public ReadableWaiter(MulticastSocketChannel c) {
             this(c, -1, null);
         }
 
-        public ReadableWaiter(MulticastMessageChannel c, long t, TimeUnit tu) {
+        public ReadableWaiter(MulticastSocketChannel c, long t, TimeUnit tu) {
             channel = c;
             timeout = t;
             timeoutUnit = tu;

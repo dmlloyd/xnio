@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import org.wildfly.common.Assert;
 import org.xnio.ChannelListener;
 import org.xnio.ChannelListeners;
 import org.xnio.IoUtils;
@@ -143,9 +144,7 @@ public abstract class TranslatingSuspendableChannel<C extends SuspendableChannel
      * @param channel the channel being wrapped
      */
     protected TranslatingSuspendableChannel(final W channel) {
-        if (channel == null) {
-            throw msg.nullParameter("channel");
-        }
+        Assert.checkNotNullParam("channel", channel);
         this.channel = channel;
         channel.getReadSetter().set(delegateReadListener);
         channel.getWriteSetter().set(delegateWriteListener);

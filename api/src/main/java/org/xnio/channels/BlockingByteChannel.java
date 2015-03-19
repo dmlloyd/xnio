@@ -27,6 +27,8 @@ import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.io.Flushable;
 import java.util.concurrent.TimeUnit;
+
+import org.wildfly.common.Assert;
 import org.xnio.Buffers;
 
 /**
@@ -35,6 +37,7 @@ import org.xnio.Buffers;
  * will throw a {@link ReadTimeoutException} if the timeout expires without reading any data.  If a write timeout is specified, then the write methods
  * will throw a {@link WriteTimeoutException} if the timeout expires without writing any data.
  */
+@Deprecated
 public class BlockingByteChannel implements ScatteringByteChannel, GatheringByteChannel, ByteChannel, Flushable {
     private final StreamChannel delegate;
     private volatile long readTimeout;
@@ -70,12 +73,8 @@ public class BlockingByteChannel implements ScatteringByteChannel, GatheringByte
      * @param writeTimeoutUnit the write timeout unit
      */
     public BlockingByteChannel(final StreamChannel delegate, final long readTimeout, final TimeUnit readTimeoutUnit, final long writeTimeout, final TimeUnit writeTimeoutUnit) {
-        if (readTimeout < 0L) {
-            throw msg.parameterOutOfRange("readTimeout");
-        }
-        if (writeTimeout < 0L) {
-            throw msg.parameterOutOfRange("writeTimeout");
-        }
+        Assert.checkMinimumParameter("readTimeout", 0L, readTimeout);
+        Assert.checkMinimumParameter("writeTimeout", 0L, writeTimeout);
         final long calcReadTimeout = readTimeoutUnit.toNanos(readTimeout);
         this.readTimeout = readTimeout == 0L ? 0L : calcReadTimeout < 1L ? 1L : calcReadTimeout;
         final long calcWriteTimeout = writeTimeoutUnit.toNanos(writeTimeout);
@@ -90,9 +89,7 @@ public class BlockingByteChannel implements ScatteringByteChannel, GatheringByte
      * @param readTimeoutUnit the read timeout unit
      */
     public void setReadTimeout(long readTimeout, TimeUnit readTimeoutUnit) {
-        if (readTimeout < 0L) {
-            throw msg.parameterOutOfRange("readTimeout");
-        }
+        Assert.checkMinimumParameter("readTimeout", 0L, readTimeout);
         final long calcTimeout = readTimeoutUnit.toNanos(readTimeout);
         this.readTimeout = readTimeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
     }
@@ -104,9 +101,7 @@ public class BlockingByteChannel implements ScatteringByteChannel, GatheringByte
      * @param writeTimeoutUnit the write timeout unit
      */
     public void setWriteTimeout(long writeTimeout, TimeUnit writeTimeoutUnit) {
-        if (writeTimeout < 0L) {
-            throw msg.parameterOutOfRange("writeTimeout");
-        }
+        Assert.checkMinimumParameter("writeTimeout", 0L, writeTimeout);
         final long calcTimeout = writeTimeoutUnit.toNanos(writeTimeout);
         this.writeTimeout = writeTimeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
     }

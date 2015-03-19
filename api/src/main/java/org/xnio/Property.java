@@ -21,7 +21,7 @@ package org.xnio;
 
 import java.io.Serializable;
 
-import static org.xnio._private.Messages.msg;
+import org.wildfly.common.Assert;
 
 /**
  * An immutable property represented by a key and value.
@@ -36,12 +36,8 @@ public final class Property implements Serializable {
     private final Object value;
 
     private Property(final String key, final Object value) {
-        if (key == null)
-            throw msg.nullParameter("key");
-
-        if (value == null)
-            throw msg.nullParameter("value");
-
+        Assert.checkNotNullParam("key", key);
+        Assert.checkNotNullParam("value", value);
         this.key = key;
         this.value = value;
     }

@@ -33,6 +33,7 @@ import static org.xnio.Bits.anyAreClear;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class Connection implements CloseableChannel, ConnectedChannel {
 
     protected final XnioIoThread thread;

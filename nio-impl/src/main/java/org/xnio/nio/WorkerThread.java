@@ -101,7 +101,7 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
     }
 
     WorkerThread(final NioXnioWorker worker, final Selector selector, final String name, final ThreadGroup group, final long stackSize, final int number) {
-        super(worker, number, group, name, stackSize);
+        super(worker, kind, number, group, name, stackSize);
         this.selector = selector;
     }
 

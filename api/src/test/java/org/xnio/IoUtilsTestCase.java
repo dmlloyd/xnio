@@ -19,8 +19,6 @@
 
 package org.xnio;
 
-import static org.xnio.AssertReadWrite.assertWrittenMessage;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -38,7 +36,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.Channels;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
@@ -49,6 +46,7 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Handler;
@@ -57,10 +55,7 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import junit.framework.TestCase;
-
 import org.xnio.IoFuture.Status;
-import org.xnio.channels.ConnectedStreamChannel;
-import org.xnio.mock.ConnectedStreamChannelMock;
 
 /**
  * Test for {@link IoUtils}.
@@ -258,15 +253,27 @@ public final class IoUtilsTestCase extends TestCase {
             public void close() {
                 throw new Error("This error should be consumed but logged");
             }
-            @Override public void publish(LogRecord record) {}
-            @Override public void flush() {}
+
+            @Override
+            public void publish(LogRecord record) {
+            }
+
+            @Override
+            public void flush() {
+            }
         });
         IoUtils.safeClose(new Handler() {
             public void close() throws SecurityException {
                 throw new SecurityException("This error should be consumed but logged");
             }
-            @Override public void publish(LogRecord record) {}
-            @Override public void flush() {}
+
+            @Override
+            public void publish(LogRecord record) {
+            }
+
+            @Override
+            public void flush() {
+            }
         });
         IoUtils.safeClose((Handler) null);         // should do nothing if target is null
     }
@@ -338,28 +345,6 @@ public final class IoUtilsTestCase extends TestCase {
         future3.setResult(result);
         assertSame(Status.DONE, futureResult3.getIoFuture().getStatus());
         assertSame(result, futureResult3.getIoFuture().get());
-    }
-
-    public void testChannelListenerNotifier() {
-        final ConnectedStreamChannelMock channel = new ConnectedStreamChannelMock();
-        final TestChannelListener channelListener = new TestChannelListener();
-
-        final TestIoFuture<ConnectedStreamChannel> future1 = new TestIoFuture<ConnectedStreamChannel>();
-        future1.<ChannelListener<? super ConnectedStreamChannel>>addNotifier(
-                IoUtils.<ConnectedStreamChannel>channelListenerNotifier(), channelListener);
-        final TestIoFuture<ConnectedStreamChannel> future2 = new TestIoFuture<ConnectedStreamChannel>();
-        future2.<ChannelListener<? super ConnectedStreamChannel>>addNotifier(
-                IoUtils.<ConnectedStreamChannel>channelListenerNotifier(), channelListener);
-        final TestIoFuture<ConnectedStreamChannel> future3 = new TestIoFuture<ConnectedStreamChannel>();
-        future3.<ChannelListener<? super ConnectedStreamChannel>>addNotifier(
-                IoUtils.<ConnectedStreamChannel>channelListenerNotifier(), channelListener);
-
-        future1.cancel();
-        future2.setException(new IOException());
-        assertFalse(channelListener.isInvoked());
-        future3.setResult(channel);
-        assertTrue(channelListener.isInvoked());
-        assertSame(channel, channelListener.getChannel());
     }
 
     public void testIoFutureWrapper() throws Exception {
@@ -610,148 +595,6 @@ public final class IoUtilsTestCase extends TestCase {
         assertSame(failure, castFuture3.getException());
     }
 
-    public void testSafeShutdownReads() {
-        final ChannelMock channel1 = new ChannelMock();
-        final ChannelMock channel2 = new ChannelMock();
-
-        IoUtils.safeShutdownReads(channel1);
-        assertTrue(channel1.isShutdownReads());
-
-        channel2.throwExceptionOnShutdownReads();
-        IoUtils.safeShutdownReads(channel2);
-        assertFalse(channel2.isShutdownReads());
-
-        IoUtils.safeShutdownReads(null); // should just ignore
-    }
-
-    public void testTransfer() throws IOException {
-        final ConnectedStreamChannelMock sourceChannel = new ConnectedStreamChannelMock();
-        final ConnectedStreamChannelMock sinkChannel = new ConnectedStreamChannelMock();
-        sinkChannel.enableWrite(false);
-        sourceChannel.setReadData("a kinda big text to transfer from source to sink");
-        sourceChannel.enableRead(true);
-
-        final ByteBuffer throughBuffer = ByteBuffer.allocate(10);
-        assertEquals(0, IoUtils.transfer(sourceChannel, 50, throughBuffer, sinkChannel));
-
-        assertWrittenMessage(sinkChannel);
-
-        sinkChannel.enableWrite(true);
-        sinkChannel.write(throughBuffer);
-
-        assertEquals(38, IoUtils.transfer(sourceChannel, 60, throughBuffer, sinkChannel));
-        assertWrittenMessage(sinkChannel, "a kinda big text to transfer from source to sink");
-    }
-
-    public void testManagerNotifier() throws Exception {
-        // add manager notifier to a future that will be cancelled
-        final TestIoFuture<Channel> future1 = new TestIoFuture<Channel>();
-        final FutureResult<Channel> manager1 = new FutureResult<Channel>();
-        final FutureResult<Channel> manager2 = new FutureResult<Channel>();
-        final IoFuture.Notifier<Channel, FutureResult<Channel>> notifier1 = IoUtils.<Channel>getManagerNotifier();
-        final IoFuture.Notifier<Channel, FutureResult<Channel>> notifier2 = IoUtils.<Channel>getManagerNotifier();
-        future1.addNotifier(notifier1, manager1);
-        future1.cancel();
-        future1.addNotifier(notifier2, manager2);
-        assertSame(Status.CANCELLED, manager1.getIoFuture().getStatus());
-        assertSame(Status.CANCELLED, manager2.getIoFuture().getStatus());
-
-        // add manager notifier to a future that will fail
-        final IOException exception = new IOException("Test exception");
-        final TestIoFuture<Channel> future2 = new TestIoFuture<Channel>();
-        final FutureResult<Channel> manager3 = new FutureResult<Channel>();
-        final FutureResult<Channel> manager4 = new FutureResult<Channel>();
-        final IoFuture.Notifier<Channel, FutureResult<Channel>> notifier3 = IoUtils.<Channel>getManagerNotifier();
-        final IoFuture.Notifier<Channel, FutureResult<Channel>> notifier4 = IoUtils.<Channel>getManagerNotifier();
-        future2.addNotifier(notifier3, manager3);
-        future2.setException(exception);
-        future2.addNotifier(notifier4, manager4);
-        assertSame(Status.FAILED, manager3.getIoFuture().getStatus());
-        assertSame(exception, manager3.getIoFuture().getException());
-        assertSame(Status.FAILED, manager4.getIoFuture().getStatus());
-        assertSame(exception, manager4.getIoFuture().getException());
-
-        // add manager notifier to a future that will have its value set
-        final Channel result = new ConnectedStreamChannelMock();
-        final TestIoFuture<Channel> future3 = new TestIoFuture<Channel>();
-        final FutureResult<Channel> manager5 = new FutureResult<Channel>();
-        final FutureResult<Channel> manager6 = new FutureResult<Channel>();
-        final IoFuture.Notifier<Channel, FutureResult<Channel>> notifier5 = IoUtils.<Channel>getManagerNotifier();
-        final IoFuture.Notifier<Channel, FutureResult<Channel>> notifier6 = IoUtils.<Channel>getManagerNotifier();
-        future3.addNotifier(notifier5, manager5);
-        future3.setResult(result);
-        future3.addNotifier(notifier6, manager6);
-        assertSame(Status.DONE, manager5.getIoFuture().getStatus());
-        assertSame(result, manager5.getIoFuture().get());
-        assertSame(Status.DONE, manager6.getIoFuture().getStatus());
-        assertSame(result, manager6.getIoFuture().get());
-    }
-
-    public void testRetryingChannelSource() throws Exception {
-        final TestChannelSource testChannelSource1 = new TestChannelSource(0);
-        final TestChannelSource testChannelSource2 = new TestChannelSource(3);
-        final TestChannelSource testChannelSource3 = new TestChannelSource(8);
-        final ChannelSource<ConnectedStreamChannelMock> testChannelSource4 = new ChannelSource<ConnectedStreamChannelMock>() {
-            @Override
-            public IoFuture<ConnectedStreamChannelMock> open(ChannelListener<? super ConnectedStreamChannelMock> openListener) {
-                return  new TestIoFuture<ConnectedStreamChannelMock>().cancel();
-            }
-        };
-
-        final ChannelSource<ConnectedStreamChannelMock> retryingChannelSource1 = IoUtils.getRetryingChannelSource(testChannelSource1, 5);
-        final ChannelSource<ConnectedStreamChannelMock> retryingChannelSource2 = IoUtils.getRetryingChannelSource(testChannelSource2, 5);
-        final ChannelSource<ConnectedStreamChannelMock> retryingChannelSource3 = IoUtils.getRetryingChannelSource(testChannelSource3, 5);
-        final ChannelSource<ConnectedStreamChannelMock> retryingChannelSource4 = IoUtils.getRetryingChannelSource(testChannelSource4, 5);
-        final TestOpenListener openListener1 = new TestOpenListener();
-        final TestOpenListener openListener2 = new TestOpenListener();
-        final TestOpenListener openListener3 = new TestOpenListener();
-        final TestOpenListener openListener4 = new TestOpenListener();
-
-        final IoFuture<ConnectedStreamChannelMock> future1 = retryingChannelSource1.open(openListener1);
-        final IoFuture<ConnectedStreamChannelMock> future2 = retryingChannelSource2.open(openListener2);
-        final IoFuture<ConnectedStreamChannelMock> future3 = retryingChannelSource3.open(openListener3);
-        final IoFuture<ConnectedStreamChannelMock> future4 = retryingChannelSource4.open(openListener4);
-
-        assertSame(Status.DONE, future1.getStatus());
-        assertNotNull(future1.get());
-        assertTrue(openListener1.isInvoked());
-        assertSame(future1.get(), openListener1.getChannel());
-
-        assertSame(Status.DONE, future2.getStatus());
-        assertNotNull(future2.get());
-        assertTrue(openListener2.isInvoked());
-        assertSame(future2.get(), openListener2.getChannel());
-
-        assertSame(Status.FAILED, future3.getStatus());
-        assertNotNull(future3.getException());
-        assertFalse(openListener3.isInvoked());
-
-        assertSame(Status.CANCELLED, future4.getStatus());
-        assertFalse(openListener3.isInvoked());
-
-        IllegalArgumentException expected = null;
-        try {
-            IoUtils.getRetryingChannelSource(testChannelSource1, 0);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        expected = null;
-        try {
-            IoUtils.getRetryingChannelSource(testChannelSource1, -1);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        expected = null;
-        try {
-            IoUtils.getRetryingChannelSource(testChannelSource1, -9);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-    }
-
     public void testClosingCancellable() {
         final TestCloseable closeable = new TestCloseable();
         final Cancellable closingCancellable = IoUtils.closingCancellable(closeable);
@@ -762,7 +605,7 @@ public final class IoUtilsTestCase extends TestCase {
     }
 
     public void testThreadLocalRandom() throws Exception {
-        final Random random = IoUtils.getThreadLocalRandom();
+        final Random random = ThreadLocalRandom.current();
         random.nextFloat();
         random.nextInt();
 
@@ -869,26 +712,6 @@ public final class IoUtilsTestCase extends TestCase {
         }
     }
 
-    private static class TestChannelListener implements ChannelListener<ConnectedStreamChannel> {
-
-        private boolean invoked = false;
-        private ConnectedStreamChannel channel;
-
-        @Override
-        public void handleEvent(ConnectedStreamChannel c) {
-            invoked = true;
-            channel = c;
-        }
-
-        public boolean isInvoked() {
-            return invoked;
-        }
-
-        public ConnectedStreamChannel getChannel() {
-            return channel;
-        }
-    }
-
     private static class FutureValueRetriever<T> implements Runnable {
         private final Future<T> future;
         private final long timeout;
@@ -976,68 +799,6 @@ public final class IoUtilsTestCase extends TestCase {
 
         public InterruptedException getInterruptedException() {
             return exception;
-        }
-    }
-
-    private static class ChannelMock extends ConnectedStreamChannelMock {
-        private boolean throwExceptionOnShutdownReads = false;
-        
-        public void throwExceptionOnShutdownReads() {
-            throwExceptionOnShutdownReads = true;
-        }
-
-        @Override
-        public void shutdownReads() throws IOException {
-            if (throwExceptionOnShutdownReads) {
-                throw new IOException("Test exception");
-            }
-            super.shutdownReads();
-        }
-    }
-
-    private static class TestChannelSource implements ChannelSource<ConnectedStreamChannelMock> {
-
-        public int count;
-
-        public TestChannelSource(int numberOfFailures) {
-            count = numberOfFailures;
-        }
-
-        @Override
-        public IoFuture<ConnectedStreamChannelMock> open(ChannelListener<? super ConnectedStreamChannelMock> openListener) {
-            if (count == 0) {
-                IoFuture<ConnectedStreamChannelMock> future = new FinishedIoFuture<ConnectedStreamChannelMock>(new ConnectedStreamChannelMock());
-                try {
-                    openListener.handleEvent(future.get());
-                } catch (CancellationException e) {
-                    throw new RuntimeException(e);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                return future;
-            }
-            count --;
-            return new FailedIoFuture<ConnectedStreamChannelMock>(new IOException("Test exception"));
-        }
-    }
-
-    private static class TestOpenListener implements ChannelListener<ConnectedStreamChannelMock> {
-
-        private boolean invoked;
-        private ConnectedStreamChannelMock channel;
-
-        @Override
-        public void handleEvent(ConnectedStreamChannelMock c) {
-            invoked = true;
-            channel = c;
-        }
-
-        public boolean isInvoked() {
-            return invoked;
-        }
-
-        public ConnectedStreamChannelMock getChannel() {
-            return channel;
         }
     }
 }

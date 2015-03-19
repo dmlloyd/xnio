@@ -32,6 +32,7 @@ import org.xnio.channels.StreamSourceChannel;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class BufferedStreamSinkConduit extends AbstractStreamSinkConduit<StreamSinkConduit> {
 
     private final Pooled<ByteBuffer> pooledBuffer;

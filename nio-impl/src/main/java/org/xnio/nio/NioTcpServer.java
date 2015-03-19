@@ -28,12 +28,12 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import org.jboss.logging.Logger;
-import org.xnio.IoUtils;
 import org.xnio.Option;
 import org.xnio.ChannelListener;
 import org.xnio.OptionMap;
@@ -42,7 +42,6 @@ import org.xnio.StreamConnection;
 import org.xnio.XnioExecutor;
 import org.xnio.channels.AcceptListenerSettable;
 import org.xnio.channels.AcceptingChannel;
-import org.xnio.channels.UnsupportedOptionException;
 import org.xnio.management.XnioServerMXBean;
 
 import static org.xnio.IoUtils.safeClose;
@@ -251,7 +250,7 @@ final class NioTcpServer extends AbstractNioChannel<NioTcpServer> implements Acc
         return options.contains(option);
     }
 
-    public <T> T getOption(final Option<T> option) throws UnsupportedOptionException, IOException {
+    public <T> T getOption(final Option<T> option) {
         if (option == Options.REUSE_ADDRESSES) {
             return option.cast(Boolean.valueOf(socket.getReuseAddress()));
         } else if (option == Options.RECEIVE_BUFFER) {
@@ -278,7 +277,7 @@ final class NioTcpServer extends AbstractNioChannel<NioTcpServer> implements Acc
         }
     }
 
-    public <T> T setOption(final Option<T> option, final T value) throws IllegalArgumentException, IOException {
+    public <T> T setOption(final Option<T> option, final T value) {
         final Object old;
         if (option == Options.REUSE_ADDRESSES) {
             old = Boolean.valueOf(socket.getReuseAddress());
@@ -470,7 +469,7 @@ final class NioTcpServer extends AbstractNioChannel<NioTcpServer> implements Acc
         tcpServerLog.logf(FQCN, Logger.Level.TRACE, null, "Wake up accepts on %s", this);
         resumeAccepts();
         final NioTcpServerHandle[] handles = this.handles;
-        final int idx = IoUtils.getThreadLocalRandom().nextInt(handles.length);
+        final int idx = ThreadLocalRandom.current().nextInt(handles.length);
         handles[idx].wakeup(SelectionKey.OP_ACCEPT);
     }
 

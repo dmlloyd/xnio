@@ -27,6 +27,7 @@ import javax.security.sasl.Sasl;
  *
  * @see Sasl#QOP
  */
+@Deprecated
 public enum SaslQop {
 
     /**

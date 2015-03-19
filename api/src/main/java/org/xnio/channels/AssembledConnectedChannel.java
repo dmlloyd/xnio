@@ -29,6 +29,7 @@ import org.xnio.ChannelListener;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public class AssembledConnectedChannel extends AssembledChannel implements ConnectedChannel {
     private final ConnectedChannel connection;
 

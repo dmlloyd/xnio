@@ -27,6 +27,7 @@ import org.xnio.XnioIoThread;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class AbstractSourceConduit<D extends SourceConduit> extends AbstractConduit<D> implements SourceConduit {
 
     /**

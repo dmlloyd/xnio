@@ -33,6 +33,7 @@ import org.xnio.channels.SslChannel;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
+@Deprecated
 public abstract class SslConnection extends StreamConnection implements SslChannel {
 
     /**

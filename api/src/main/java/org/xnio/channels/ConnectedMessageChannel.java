@@ -6,6 +6,7 @@ import org.xnio.ChannelListener;
 /**
  * A channel that sends and receives messages to a connected peer.
  */
+@Deprecated
 public interface ConnectedMessageChannel extends MessageChannel, ConnectedChannel {
 
     /** {@inheritDoc} */

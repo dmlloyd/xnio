@@ -28,6 +28,7 @@ import org.xnio.ChannelListener;
  *
  * @see MultipointMessageChannel
  */
+@Deprecated
 public interface WritableMultipointMessageChannel extends SuspendableWriteChannel {
 
     /**

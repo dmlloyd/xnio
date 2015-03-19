@@ -26,6 +26,8 @@ import java.io.InterruptedIOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+
+import org.wildfly.common.Assert;
 import org.xnio.Bits;
 import org.xnio.channels.Channels;
 import org.xnio.channels.StreamSourceChannel;
@@ -39,6 +41,7 @@ import org.xnio.channels.StreamSourceChannel;
  * 
  * @since 1.2
  */
+@Deprecated
 public class ChannelInputStream extends InputStream {
     protected final StreamSourceChannel channel;
     @SuppressWarnings("unused")
@@ -56,9 +59,7 @@ public class ChannelInputStream extends InputStream {
      * @param channel the channel to wrap
      */
     public ChannelInputStream(final StreamSourceChannel channel) {
-        if (channel == null) {
-            throw msg.nullParameter("channel");
-        }
+        Assert.checkNotNullParam("channel", channel);
         this.channel = channel;
     }
 
@@ -70,15 +71,9 @@ public class ChannelInputStream extends InputStream {
      * @param timeoutUnit the time unit for read timeouts
      */
     public ChannelInputStream(final StreamSourceChannel channel, final long timeout, final TimeUnit timeoutUnit) {
-        if (channel == null) {
-            throw msg.nullParameter("channel");
-        }
-        if (timeoutUnit == null) {
-            throw msg.nullParameter("timeoutUnit");
-        }
-        if (timeout < 0L) {
-            throw msg.parameterOutOfRange("timeout");
-        }
+        Assert.checkNotNullParam("channel", channel);
+        Assert.checkNotNullParam("timeoutUnit", timeoutUnit);
+        Assert.checkMinimumParameter("timeout", 0L, timeout);
         this.channel = channel;
         final long calcTimeout = timeoutUnit.toNanos(timeout);
         this.timeout = timeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
@@ -112,9 +107,7 @@ public class ChannelInputStream extends InputStream {
      * @return the timeout in the given unit
      */
     public long getReadTimeout(TimeUnit unit) {
-        if (unit == null) {
-            throw msg.nullParameter("unit");
-        }
+        Assert.checkNotNullParam("unit", unit);
         return unit.convert(timeout, TimeUnit.NANOSECONDS);
     }
 
@@ -125,12 +118,8 @@ public class ChannelInputStream extends InputStream {
      * @param unit the time unit
      */
     public void setReadTimeout(long timeout, TimeUnit unit) {
-        if (timeout < 0L) {
-            throw msg.parameterOutOfRange("timeout");
-        }
-        if (unit == null) {
-            throw msg.nullParameter("unit");
-        }
+        Assert.checkMinimumParameter("timeout", 0L, timeout);
+        Assert.checkNotNullParam("unit", unit);
         final long calcTimeout = unit.toNanos(timeout);
         this.timeout = timeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
     }

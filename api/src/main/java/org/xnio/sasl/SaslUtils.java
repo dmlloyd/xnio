@@ -54,6 +54,7 @@ import javax.security.sasl.SaslServerFactory;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class SaslUtils {
 
     private SaslUtils() {

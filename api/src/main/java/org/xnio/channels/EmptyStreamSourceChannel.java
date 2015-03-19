@@ -40,6 +40,7 @@ import static org.xnio.Bits.anyAreSet;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public class EmptyStreamSourceChannel implements StreamSourceChannel, ReadListenerSettable<EmptyStreamSourceChannel>, CloseListenerSettable<EmptyStreamSourceChannel> {
     private final XnioIoThread thread;
     private final Runnable readRunnable = new Runnable() {

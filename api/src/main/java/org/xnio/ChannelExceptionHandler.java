@@ -10,6 +10,7 @@ import java.util.EventListener;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface ChannelExceptionHandler<T extends Channel> extends EventListener {
 
     /**

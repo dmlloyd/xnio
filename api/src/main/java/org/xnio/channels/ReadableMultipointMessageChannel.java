@@ -25,6 +25,7 @@ import org.xnio.ChannelListener;
 /**
  * The readable side of a multipoint message channel.
  */
+@Deprecated
 public interface ReadableMultipointMessageChannel extends SuspendableReadChannel {
     /**
      * Receive a message via this channel.

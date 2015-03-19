@@ -28,6 +28,7 @@ import org.xnio.XnioExecutor;
  * A suspendable writable channel.  This type of channel is associated with a listener which can suspend and resume
  * writes as needed.
  */
+@Deprecated
 public interface SuspendableWriteChannel extends CloseableChannel {
 
     /**

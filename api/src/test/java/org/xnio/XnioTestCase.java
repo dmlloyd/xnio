@@ -41,7 +41,6 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.Permission;
 import java.security.PrivilegedAction;
-import java.util.ServiceConfigurationError;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;

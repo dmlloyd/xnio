@@ -21,7 +21,7 @@ package org.xnio;
 
 import java.net.SocketAddress;
 
-import static org.xnio._private.Messages.msg;
+import org.wildfly.common.Assert;
 
 /**
  * A socket address which is a local (UNIX domain) socket.
@@ -40,9 +40,7 @@ public final class LocalSocketAddress extends SocketAddress {
      * @param name the name of this socket address
      */
     public LocalSocketAddress(final String name) {
-        if (name == null) {
-            throw msg.nullParameter("name");
-        }
+        Assert.checkNotNullParam("name", name);
         this.name = name;
     }
 

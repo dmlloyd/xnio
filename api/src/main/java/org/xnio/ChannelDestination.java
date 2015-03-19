@@ -12,6 +12,7 @@ import org.xnio.channels.BoundChannel;
  *
  * @since 1.2
  */
+@Deprecated
 public interface ChannelDestination<T extends Channel> {
     /**
      * Accept a connection.  The bind listener will be called when the channel is bound; the open listener will be called

@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
+import org.wildfly.common.Assert;
 import org.xnio.ChannelListener;
 import org.xnio.ChannelListeners;
 import org.xnio.Option;
@@ -56,6 +57,7 @@ import org.xnio.channels.ConnectedChannel;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:flavia.rainone@jboss.com">Flavia Rainone</a>
  */
+@Deprecated
 abstract class AbstractAcceptingSslChannel<C extends ConnectedChannel, S extends ConnectedChannel> implements AcceptingChannel<C> {
     private final SSLContext sslContext;
     private final AcceptingChannel<? extends S> tcpServer;
@@ -112,14 +114,15 @@ abstract class AbstractAcceptingSslChannel<C extends ConnectedChannel, S extends
             .create();
 
     public <T> T setOption(final Option<T> option, final T value) throws IllegalArgumentException, IOException {
+        Assert.checkNotNullParam("value", value);
         if (option == Options.SSL_CLIENT_AUTH_MODE) {
             return option.cast(clientAuthModeUpdater.getAndSet(this, Options.SSL_CLIENT_AUTH_MODE.cast(value)));
         } else if (option == Options.SSL_USE_CLIENT_MODE) {
             final Boolean valueObject = Options.SSL_USE_CLIENT_MODE.cast(value);
-            if (valueObject != null) return option.cast(Boolean.valueOf(useClientModeUpdater.getAndSet(this, valueObject.booleanValue() ? 1 : 0) != 0));
+            return option.cast(Boolean.valueOf(useClientModeUpdater.getAndSet(this, valueObject.booleanValue() ? 1 : 0) != 0));
         } else if (option == Options.SSL_ENABLE_SESSION_CREATION) {
             final Boolean valueObject = Options.SSL_ENABLE_SESSION_CREATION.cast(value);
-            if (valueObject != null) return option.cast(Boolean.valueOf(enableSessionCreationUpdater.getAndSet(this, valueObject.booleanValue() ? 1 : 0) != 0));
+            return option.cast(Boolean.valueOf(enableSessionCreationUpdater.getAndSet(this, valueObject.booleanValue() ? 1 : 0) != 0));
         } else if (option == Options.SSL_ENABLED_CIPHER_SUITES) {
             final Sequence<String> seq = Options.SSL_ENABLED_CIPHER_SUITES.cast(value);
             return option.cast(cipherSuitesUpdater.getAndSet(this, seq == null ? null : seq.toArray(new String[seq.size()])));
@@ -129,7 +132,6 @@ abstract class AbstractAcceptingSslChannel<C extends ConnectedChannel, S extends
         } else {
             return tcpServer.setOption(option, value);
         }
-        throw msg.nullParameter("value");
     }
 
     public XnioWorker getWorker() {

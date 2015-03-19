@@ -25,6 +25,7 @@ package org.xnio;
  * @param <T> the pooled resource type
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface Pooled<T> extends AutoCloseable {
 
     /**

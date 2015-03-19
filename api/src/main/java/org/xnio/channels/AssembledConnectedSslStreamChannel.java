@@ -30,6 +30,7 @@ import javax.net.ssl.SSLSession;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public class AssembledConnectedSslStreamChannel extends AssembledConnectedStreamChannel implements ConnectedSslStreamChannel {
     private final SslChannel sslChannel;
     private final ChannelListener.Setter<AssembledConnectedSslStreamChannel> handshakeSetter;

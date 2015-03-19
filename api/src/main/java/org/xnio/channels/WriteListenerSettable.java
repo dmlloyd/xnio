@@ -26,6 +26,7 @@ import org.xnio.ChannelListener;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface WriteListenerSettable<C extends Channel> {
     /**
      * Set the write listener.
@@ -46,6 +47,7 @@ public interface WriteListenerSettable<C extends Channel> {
      *
      * @param <C> the channel type
      */
+    @Deprecated
     class Setter<C extends Channel> implements ChannelListener.Setter<C> {
         private final WriteListenerSettable<C> settable;
 

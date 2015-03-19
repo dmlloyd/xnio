@@ -26,6 +26,7 @@ import org.xnio.Option;
  *
  * @apiviz.exclude
  */
+@Deprecated
 public interface Configurable {
 
     /**

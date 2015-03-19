@@ -28,6 +28,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -42,7 +43,7 @@ import org.xnio.Options;
 import org.xnio.StreamConnection;
 import org.xnio.XnioWorker;
 import org.xnio.channels.AcceptingChannel;
-import org.xnio.channels.MulticastMessageChannel;
+import org.xnio.channels.MulticastSocketChannel;
 import org.xnio.management.XnioWorkerMXBean;
 
 import static org.xnio.IoUtils.safeClose;
@@ -156,7 +157,7 @@ final class NioXnioWorker extends XnioWorker {
         if (length == 1) {
             return workerThreads[0];
         }
-        final Random random = IoUtils.getThreadLocalRandom();
+        final Random random = ThreadLocalRandom.current();
         return workerThreads[random.nextInt(length)];
     }
 
@@ -194,10 +195,10 @@ final class NioXnioWorker extends XnioWorker {
 
 
     /** {@inheritDoc} */
-    public MulticastMessageChannel createUdpServer(final InetSocketAddress bindAddress, final ChannelListener<? super MulticastMessageChannel> bindListener, final OptionMap optionMap) throws IOException {
+    public MulticastSocketChannel createUdpServer(final InetSocketAddress bindAddress, final ChannelListener<? super MulticastSocketChannel> bindListener, final OptionMap optionMap) throws IOException {
         checkShutdown();
         final DatagramChannel channel;
-        if (NioXnio.NIO2 && bindAddress != null) {
+        if (true && bindAddress != null) {
             InetAddress address = bindAddress.getAddress();
             if (address instanceof Inet6Address) {
                 channel = DatagramChannel.open(StandardProtocolFamily.INET6);

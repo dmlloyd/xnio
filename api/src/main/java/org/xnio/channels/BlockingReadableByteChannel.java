@@ -24,6 +24,8 @@ import java.nio.channels.ScatteringByteChannel;
 import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+
+import org.wildfly.common.Assert;
 import org.xnio.Buffers;
 
 /**
@@ -31,6 +33,7 @@ import org.xnio.Buffers;
  * Once any amount of data is read, the operation will return.  If a read timeout is specified, then the read methods
  * will throw a {@link ReadTimeoutException} if the timeout expires without reading any data.
  */
+@Deprecated
 public class BlockingReadableByteChannel implements ScatteringByteChannel {
     private final StreamSourceChannel delegate;
     private volatile long readTimeout;
@@ -52,9 +55,7 @@ public class BlockingReadableByteChannel implements ScatteringByteChannel {
      * @param readTimeoutUnit the read timeout unit
      */
     public BlockingReadableByteChannel(final StreamSourceChannel delegate, final long readTimeout, final TimeUnit readTimeoutUnit) {
-        if (readTimeout < 0L) {
-            throw msg.parameterOutOfRange("readTimeout");
-        }
+        Assert.checkMinimumParameter("readTimeout", 0L, readTimeout);
         this.delegate = delegate;
         final long calcTimeout = readTimeoutUnit.toNanos(readTimeout);
         this.readTimeout = readTimeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
@@ -67,9 +68,7 @@ public class BlockingReadableByteChannel implements ScatteringByteChannel {
      * @param readTimeoutUnit the read timeout unit
      */
     public void setReadTimeout(long readTimeout, TimeUnit readTimeoutUnit) {
-        if (readTimeout < 0L) {
-            throw msg.parameterOutOfRange("readTimeout");
-        }
+        Assert.checkMinimumParameter("readTimeout", 0L, readTimeout);
         final long calcTimeout = readTimeoutUnit.toNanos(readTimeout);
         this.readTimeout = readTimeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
     }

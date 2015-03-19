@@ -28,6 +28,7 @@ import org.xnio.XnioExecutor;
  * A suspendable readable channel.  This type of channel is associated with a listener which can suspend and resume
  * reads as needed.
  */
+@Deprecated
 public interface SuspendableReadChannel extends CloseableChannel {
     /**
      * Suspend further read notifications on this channel.

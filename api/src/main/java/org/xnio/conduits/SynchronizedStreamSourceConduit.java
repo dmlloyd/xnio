@@ -30,6 +30,7 @@ import org.xnio.channels.StreamSinkChannel;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class SynchronizedStreamSourceConduit extends AbstractSynchronizedSourceConduit<StreamSourceConduit> implements StreamSourceConduit {
 
     /**

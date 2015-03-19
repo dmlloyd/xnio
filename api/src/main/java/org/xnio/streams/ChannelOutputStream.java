@@ -26,6 +26,8 @@ import java.io.InterruptedIOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+
+import org.wildfly.common.Assert;
 import org.xnio.Bits;
 import org.xnio.channels.StreamSinkChannel;
 
@@ -38,6 +40,7 @@ import org.xnio.channels.StreamSinkChannel;
  * 
  * @since 1.2
  */
+@Deprecated
 public class ChannelOutputStream extends OutputStream {
 
     protected final StreamSinkChannel channel;
@@ -56,9 +59,7 @@ public class ChannelOutputStream extends OutputStream {
      * @param channel the channel to wrap
      */
     public ChannelOutputStream(final StreamSinkChannel channel) {
-        if (channel == null) {
-            throw msg.nullParameter("channel");
-        }
+        Assert.checkNotNullParam("channel", channel);
         this.channel = channel;
     }
 
@@ -70,15 +71,9 @@ public class ChannelOutputStream extends OutputStream {
      * @param unit the write timeout units
      */
     public ChannelOutputStream(final StreamSinkChannel channel, final long timeout, final TimeUnit unit) {
-        if (channel == null) {
-            throw msg.nullParameter("channel");
-        }
-        if (unit == null) {
-            throw msg.nullParameter("unit");
-        }
-        if (timeout < 0L) {
-            throw msg.parameterOutOfRange("timeout");
-        }
+        Assert.checkNotNullParam("channel", channel);
+        Assert.checkNotNullParam("unit", unit);
+        Assert.checkMinimumParameter("timeout", 0L, timeout);
         this.channel = channel;
         final long calcTimeout = unit.toNanos(timeout);
         this.timeout = timeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
@@ -112,9 +107,7 @@ public class ChannelOutputStream extends OutputStream {
      * @return the timeout in the given unit
      */
     public long getWriteTimeout(TimeUnit unit) {
-        if (unit == null) {
-            throw msg.nullParameter("unit");
-        }
+        Assert.checkNotNullParam("unit", unit);
         return unit.convert(timeout, TimeUnit.NANOSECONDS);
     }
 
@@ -125,12 +118,8 @@ public class ChannelOutputStream extends OutputStream {
      * @param unit the time unit
      */
     public void setWriteTimeout(long timeout, TimeUnit unit) {
-        if (timeout < 0L) {
-            throw msg.parameterOutOfRange("timeout");
-        }
-        if (unit == null) {
-            throw msg.nullParameter("unit");
-        }
+        Assert.checkMinimumParameter("timeout", 0L, timeout);
+        Assert.checkNotNullParam("unit", unit);
         final long calcTimeout = unit.toNanos(timeout);
         this.timeout = timeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
     }

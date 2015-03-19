@@ -4,6 +4,7 @@ package org.xnio;
 /**
  * The desired SSL client authentication mode for SSL channels in server mode.
  */
+@Deprecated
 public enum SslClientAuthMode {
 
     /**

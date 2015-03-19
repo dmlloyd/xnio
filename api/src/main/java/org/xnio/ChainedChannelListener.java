@@ -8,6 +8,7 @@ import java.nio.channels.Channel;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class ChainedChannelListener<T extends Channel> implements ChannelListener<T> {
     private final ChannelListener<? super T>[] listeners;
 

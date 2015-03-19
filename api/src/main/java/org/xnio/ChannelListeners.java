@@ -29,6 +29,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
+import org.wildfly.common.Assert;
 import org.xnio.channels.AcceptingChannel;
 import org.xnio.channels.Channels;
 import org.xnio.channels.ConnectedChannel;
@@ -39,14 +41,13 @@ import org.xnio.channels.SuspendableWriteChannel;
 import org.xnio.channels.WritableMessageChannel;
 
 import static org.xnio._private.Messages.listenerMsg;
-import static org.xnio._private.Messages.msg;
 
 /**
  * Channel listener utility methods.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-@SuppressWarnings("unused")
+@Deprecated
 public final class ChannelListeners {
 
     private static final ChannelListener<Channel> NULL_LISTENER = new ChannelListener<Channel>() {
@@ -280,9 +281,7 @@ public final class ChannelListeners {
      * @return a channel accept listener
      */
     public static <C extends ConnectedChannel> ChannelListener<AcceptingChannel<C>> openListenerAdapter(final ChannelListener<? super C> openListener) {
-        if (openListener == null) {
-            throw msg.nullParameter("openListener");
-        }
+        Assert.checkNotNullParam("openListener", openListener);
         return new ChannelListener<AcceptingChannel<C>>() {
             public void handleEvent(final AcceptingChannel<C> channel) {
                 try {
@@ -951,9 +950,7 @@ public final class ChannelListeners {
      * @param pool the pool from which the transfer buffer should be allocated
      */
     public static <I extends StreamSourceChannel, O extends StreamSinkChannel> void initiateTransfer(long count, final I source, final O sink, final ChannelListener<? super I> sourceListener, final ChannelListener<? super O> sinkListener, final ChannelExceptionHandler<? super I> readExceptionHandler, final ChannelExceptionHandler<? super O> writeExceptionHandler, Pool<ByteBuffer> pool) {
-        if (pool == null) {
-            throw msg.nullParameter("pool");
-        }
+        Assert.checkNotNullParam("pool", pool);
         final Pooled<ByteBuffer> allocated = pool.allocate();
         boolean free = true;
         try {

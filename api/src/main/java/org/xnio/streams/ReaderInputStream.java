@@ -30,6 +30,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+
+import org.wildfly.common.Assert;
 import org.xnio.Buffers;
 
 /**
@@ -90,15 +92,9 @@ public final class ReaderInputStream extends InputStream {
      * @param bufferSize the buffer size to use
      */
     public ReaderInputStream(final Reader reader, final CharsetEncoder encoder, final int bufferSize) {
-        if (reader == null) {
-            throw msg.nullParameter("writer");
-        }
-        if (encoder == null) {
-            throw msg.nullParameter("decoder");
-        }
-        if (bufferSize < 1) {
-            throw msg.parameterOutOfRange("bufferSize");
-        }
+        Assert.checkNotNullParam("reader", reader);
+        Assert.checkNotNullParam("encoder", encoder);
+        Assert.checkMinimumParameter("bufferSize", 1, bufferSize);
         this.reader = reader;
         this.encoder = encoder;
         charBuffer = CharBuffer.wrap(new char[bufferSize]);

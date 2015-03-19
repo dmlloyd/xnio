@@ -6,6 +6,11 @@ import org.xnio.channels.BoundChannel;
 import org.xnio.channels.StreamChannel;
 import org.xnio.channels.StreamSinkChannel;
 import org.xnio.channels.StreamSourceChannel;
+import org.xnio.channels.async.MessageSocketChannel;
+import org.xnio.channels.async.StreamDuplexChannel;
+import org.xnio.channels.async.StreamInputChannel;
+import org.xnio.channels.async.StreamOutputChannel;
+import org.xnio.channels.async.StreamSocketChannel;
 
 /**
  * An XNIO I/O factory which can be used to create channels.
@@ -13,6 +18,17 @@ import org.xnio.channels.StreamSourceChannel;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
 public interface XnioIoFactory {
+
+    /**
+     * Connect to a remote stream server.  The protocol family is determined by the type of the socket addresses given
+     * (which must match).
+     *
+     * @param bindAddress the local address to bind to, or {@code null} to automatically select a bind address
+     * @param destination the destination address
+     * @param optionMap the option map
+     * @return the future result of this operation
+     */
+    IoFuture<StreamSocketChannel> openAsynchronousStreamConnection(SocketAddress bindAddress, SocketAddress destination, OptionMap optionMap);
 
     /**
      * Connect to a remote stream server.  The protocol family is determined by the type of the socket address given.
@@ -24,6 +40,7 @@ public interface XnioIoFactory {
      * @param optionMap the option map
      * @return the future result of this operation
      */
+    @Deprecated
     IoFuture<StreamConnection> openStreamConnection(SocketAddress destination, ChannelListener<? super StreamConnection> openListener, OptionMap optionMap);
 
     /**
@@ -37,6 +54,7 @@ public interface XnioIoFactory {
      * @param optionMap the option map
      * @return the future result of this operation
      */
+    @Deprecated
     IoFuture<StreamConnection> openStreamConnection(SocketAddress destination, ChannelListener<? super StreamConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap);
 
     /**
@@ -51,7 +69,18 @@ public interface XnioIoFactory {
      * @param optionMap the option map
      * @return the future result of this operation
      */
+    @Deprecated
     IoFuture<StreamConnection> openStreamConnection(SocketAddress bindAddress, SocketAddress destination, ChannelListener<? super StreamConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap);
+
+    /**
+     * Accept a stream connection at a destination address.  If a wildcard address is specified or {@code null} is given,
+     * then a destination address is chosen in a manner specific to the address type, OS, and/or channel type.
+     *
+     * @param destination the destination (bind) address, or {@code null}
+     * @param optionMap the option map
+     * @return the future connection
+     */
+    IoFuture<StreamSocketChannel> acceptAsynchronousStreamConnection(SocketAddress destination, OptionMap optionMap);
 
     /**
      * Accept a stream connection at a destination address.  If a wildcard address is specified, then a destination address
@@ -63,7 +92,19 @@ public interface XnioIoFactory {
      * @param optionMap the option map
      * @return the future connection
      */
+    @Deprecated
     IoFuture<StreamConnection> acceptStreamConnection(SocketAddress destination, ChannelListener<? super StreamConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap);
+
+    /**
+     * Connect to a remote message server.  The protocol family is determined by the type of the socket addresses given
+     * (which must match).
+     *
+     * @param bindAddress the local address to bind to, or {@code null} to automatically select a bind address
+     * @param destination the destination address
+     * @param optionMap the option map
+     * @return the future result of this operation
+     */
+    IoFuture<MessageSocketChannel> openAsynchronousMessageConnection(SocketAddress bindAddress, SocketAddress destination, OptionMap optionMap);
 
     /**
      * Connect to a remote message server.  The protocol family is determined by the type of the socket address given.
@@ -75,7 +116,18 @@ public interface XnioIoFactory {
      * @param optionMap the option map
      * @return the future result of this operation
      */
+    @Deprecated
     IoFuture<MessageConnection> openMessageConnection(SocketAddress destination, ChannelListener<? super MessageConnection> openListener, OptionMap optionMap);
+
+    /**
+     * Accept a message connection at a destination address.  If a wildcard address is specified or {@code null} is given,
+     * then a destination address is chosen in a manner specific to the address type, OS, and/or channel type.
+     *
+     * @param destination the destination (bind) address, or {@code null}
+     * @param optionMap the option map
+     * @return the future connection
+     */
+    IoFuture<MessageSocketChannel> acceptAsynchronousMessageConnection(SocketAddress destination, OptionMap optionMap);
 
     /**
      * Accept a message connection at a destination address.  If a wildcard address is specified, then a destination address
@@ -88,30 +140,71 @@ public interface XnioIoFactory {
      * @param optionMap the option map
      * @return the future connection
      */
+    @Deprecated
     IoFuture<MessageConnection> acceptMessageConnection(SocketAddress destination, ChannelListener<? super MessageConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap);
 
     /**
      * Create a two-way stream pipe.
      *
      * @return the created pipe
-     * @throws java.io.IOException if the pipe could not be created
+     * @throws IOException if the pipe could not be created
      */
+    ChannelPipe<StreamDuplexChannel, StreamDuplexChannel> createFullDuplexAsynchronousPipe() throws IOException;
+
+    /**
+     * Create a one-way stream pipe.  The left (source) side will be associated with this factory, and the right
+     * (sink) side will be associated with the given peer.
+     *
+     * @param peer the peer to use for the sink (right) side
+     * @return the created pipe
+     * @throws IOException if the pipe could not be created
+     */
+    ChannelPipe<StreamDuplexChannel, StreamDuplexChannel> createFullDuplexAsynchronousPipe(XnioIoFactory peer) throws IOException;
+
+    /**
+     * Create a two-way stream pipe.
+     *
+     * @return the created pipe
+     * @throws IOException if the pipe could not be created
+     */
+    @Deprecated
     ChannelPipe<StreamChannel, StreamChannel> createFullDuplexPipe() throws IOException;
 
     /**
      * Create a two-way stream pipe.
      *
      * @return the created pipe
-     * @throws java.io.IOException if the pipe could not be created
+     * @throws IOException if the pipe could not be created
      */
+    @Deprecated
     ChannelPipe<StreamConnection, StreamConnection> createFullDuplexPipeConnection() throws IOException;
 
     /**
      * Create a one-way stream pipe.
      *
      * @return the created pipe
-     * @throws java.io.IOException if the pipe could not be created
+     * @throws IOException if the pipe could not be created
      */
+    ChannelPipe<StreamInputChannel, StreamOutputChannel> createHalfDuplexAsynchronousPipe() throws IOException;
+
+    /**
+     * Create a one-way stream pipe.  The left (source) side will be associated with this factory, and the right
+     * (sink) side will be associated with the given peer.
+     *
+     * @param peer the peer to use for the sink (right) side
+     * @return the created pipe
+     * @throws IOException if the pipe could not be created
+     */
+    @Deprecated
+    ChannelPipe<StreamInputChannel, StreamOutputChannel> createHalfDuplexAsynchronousPipe(XnioIoFactory peer) throws IOException;
+
+    /**
+     * Create a one-way stream pipe.
+     *
+     * @return the created pipe
+     * @throws IOException if the pipe could not be created
+     */
+    @Deprecated
     ChannelPipe<StreamSourceChannel, StreamSinkChannel> createHalfDuplexPipe() throws IOException;
 
     /**
@@ -120,8 +213,9 @@ public interface XnioIoFactory {
      *
      * @param peer the peer to use for controlling the remote (right) side
      * @return the created pipe
-     * @throws java.io.IOException if the pipe could not be created
+     * @throws IOException if the pipe could not be created
      */
+    @Deprecated
     ChannelPipe<StreamConnection, StreamConnection> createFullDuplexPipeConnection(XnioIoFactory peer) throws IOException;
 
     /**
@@ -130,7 +224,8 @@ public interface XnioIoFactory {
      *
      * @param peer the peer to use for the sink (right) side
      * @return the created pipe
-     * @throws java.io.IOException if the pipe could not be created
+     * @throws IOException if the pipe could not be created
      */
+    @Deprecated
     ChannelPipe<StreamSourceChannel, StreamSinkChannel> createHalfDuplexPipe(XnioIoFactory peer) throws IOException;
 }

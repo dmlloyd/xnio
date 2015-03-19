@@ -27,6 +27,7 @@ import org.xnio.ChannelListener;
 /**
  * A channel which can use SSL/TLS to negotiate a security layer.
  */
+@Deprecated
 public interface SslChannel extends ConnectedChannel {
 
     /**

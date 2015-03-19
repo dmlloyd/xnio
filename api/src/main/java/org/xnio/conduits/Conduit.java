@@ -25,6 +25,7 @@ import org.xnio.XnioWorker;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface Conduit {
 
     /**

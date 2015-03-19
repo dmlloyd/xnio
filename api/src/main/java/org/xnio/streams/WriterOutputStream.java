@@ -31,6 +31,8 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 
+import org.wildfly.common.Assert;
+
 /**
  * An output stream which decodes bytes into a character writer.
  */
@@ -69,15 +71,9 @@ public final class WriterOutputStream extends OutputStream {
      * @param bufferSize the buffer size to use
      */
     public WriterOutputStream(final Writer writer, final CharsetDecoder decoder, int bufferSize) {
-        if (writer == null) {
-            throw msg.nullParameter("writer");
-        }
-        if (decoder == null) {
-            throw msg.nullParameter("decoder");
-        }
-        if (bufferSize < 1) {
-            throw msg.parameterOutOfRange("bufferSize");
-        }
+        Assert.checkNotNullParam("writer", writer);
+        Assert.checkNotNullParam("decoder", decoder);
+        Assert.checkMinimumParameter("bufferSize", 1, bufferSize);
         this.writer = writer;
         this.decoder = decoder;
         byteBuffer = ByteBuffer.allocate(bufferSize);

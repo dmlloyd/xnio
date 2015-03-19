@@ -6,6 +6,7 @@ import org.xnio.ChannelListener;
 /**
  * A channel that sends and receives whole messages.
  */
+@Deprecated
 public interface MessageChannel extends ReadableMessageChannel, WritableMessageChannel, SuspendableChannel {
 
     /** {@inheritDoc} */

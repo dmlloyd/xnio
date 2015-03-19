@@ -26,6 +26,7 @@ import java.net.SocketAddress;
  * 
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class SocketAddressBuffer {
     private SocketAddress sourceAddress;
     private SocketAddress destinationAddress;

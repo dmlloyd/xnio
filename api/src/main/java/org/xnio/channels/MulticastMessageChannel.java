@@ -29,6 +29,7 @@ import org.xnio.ChannelListener;
  *
  * @apiviz.landmark
  */
+@Deprecated
 public interface MulticastMessageChannel extends BoundMultipointMessageChannel {
 
     /**
@@ -36,6 +37,7 @@ public interface MulticastMessageChannel extends BoundMultipointMessageChannel {
      *
      * @apiviz.exclude
      */
+    @Deprecated
     interface Key extends Closeable {
         /**
          * Block multicast packets from the given source address.

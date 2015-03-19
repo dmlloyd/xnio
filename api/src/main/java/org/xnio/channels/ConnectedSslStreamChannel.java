@@ -6,6 +6,7 @@ import org.xnio.ChannelListener;
 /**
  * A TLS-encapsulated connected stream channel.
  */
+@Deprecated
 public interface ConnectedSslStreamChannel extends ConnectedStreamChannel, SslChannel {
 
     /** {@inheritDoc} */

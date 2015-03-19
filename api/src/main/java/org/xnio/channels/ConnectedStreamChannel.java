@@ -6,6 +6,7 @@ import org.xnio.ChannelListener;
 /**
  * A stream channel that is a connection between a local and remote endpoint.
  */
+@Deprecated
 public interface ConnectedStreamChannel extends StreamChannel, ConnectedChannel {
 
     /** {@inheritDoc} */

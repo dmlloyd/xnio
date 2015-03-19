@@ -27,19 +27,19 @@ import java.nio.Buffer;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.IntBuffer;
-import java.nio.LongBuffer;
 import java.nio.ReadOnlyBufferException;
-import java.nio.ShortBuffer;
 import java.nio.BufferOverflowException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.util.Arrays;
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 import static org.xnio._private.Messages.msg;
+
+import org.wildfly.common.Assert;
 
 /**
  * Buffer utility methods.
@@ -48,6 +48,20 @@ import static org.xnio._private.Messages.msg;
  */
 public final class Buffers {
     private Buffers() {}
+
+    /**
+     * Drain a buffer.  This is the same as setting the position to be equal to the limit.  Returns the number of bytes
+     * skipped.
+     *
+     * @param buffer the buffer to drain
+     * @return the number of bytes drained from this buffer
+     */
+    public static int drain(Buffer buffer) {
+        final int oldPos = buffer.position();
+        final int oldLim = buffer.limit();
+        buffer.position(oldLim);
+        return oldLim - oldPos;
+    }
 
     /**
      * Flip a buffer.
@@ -143,6 +157,104 @@ public final class Buffers {
     }
 
     /**
+     * Flip all the buffers in the array, freeing buffers that have no data in them, and returning the new length.
+     *
+     * @param buffers the buffers to flip
+     * @return the number of buffers in the array after flipping
+     */
+    public static int flipAndFree(ByteBuffer[] buffers) {
+        return flipAndFree(buffers, 0, buffers.length);
+    }
+
+    /**
+     * Flip all the buffers in the array, freeing buffers that have no data in them, and returning the new length.
+     *
+     * @param buffers the buffers to flip
+     * @param offs the offset into the buffers array
+     * @return the number of buffers in the array after flipping
+     */
+    public static int flipAndFree(ByteBuffer[] buffers, int offs) {
+        return flipAndFree(buffers, offs, buffers.length - offs);
+    }
+
+    /**
+     * Flip all the buffers in the array, freeing buffers that have no data in them, and returning the new length.
+     *
+     * @param buffers the buffers to flip
+     * @param offs the offset into the buffers array
+     * @param len the number of buffers to flip
+     * @return the number of buffers in the array after flipping
+     */
+    public static int flipAndFree(ByteBuffer[] buffers, int offs, int len) {
+        Assert.checkArrayBounds(buffers, offs, len);
+        ByteBuffer buffer;
+        int i = 0, j = 0;
+        while (i < len) {
+            buffer = buffers[offs + i];
+            if (buffer.position() == 0) {
+                ByteBufferPool.free(buffer);
+            } else {
+                buffer.flip();
+                buffers[offs + j++] = buffer;
+            }
+        }
+        int res = j;
+        while (j < len) {
+            buffers[offs + j++] = null;
+        }
+        return res;
+    }
+
+    /**
+     * Compact all the buffers in the array, freeing buffers that have been fully read, and returning the new length.
+     *
+     * @param buffers the buffers to compact
+     * @return the number of buffers in the array after compacting
+     */
+    public static int compactAndFree(ByteBuffer[] buffers) {
+        return compactAndFree(buffers, 0, buffers.length);
+    }
+
+    /**
+     * Compact all the buffers in the array, freeing buffers that have been fully read, and returning the new length.
+     *
+     * @param buffers the buffers to compact
+     * @param offs the offset into the buffers array
+     * @return the number of buffers in the array after compacting
+     */
+    public static int compactAndFree(ByteBuffer[] buffers, int offs) {
+        return compactAndFree(buffers, offs, buffers.length - offs);
+    }
+
+    /**
+     * Compact all the buffers in the array, freeing buffers that have been fully read, and returning the new length.
+     *
+     * @param buffers the buffers to compact
+     * @param offs the offset into the buffers array
+     * @param len the number of buffers to flip
+     * @return the number of buffers in the array after compacting
+     */
+    public static int compactAndFree(ByteBuffer[] buffers, int offs, int len) {
+        Assert.checkArrayBounds(buffers, offs, len);
+        ByteBuffer buffer;
+        int i = 0, j = 0;
+        while (i < len) {
+            buffer = buffers[offs + i];
+            if (buffer.hasRemaining()) {
+                buffer.compact();
+                buffers[offs + j++] = buffer;
+            } else {
+                ByteBufferPool.free(buffer);
+            }
+        }
+        int res = j;
+        while (j < len) {
+            buffers[offs + j++] = null;
+        }
+        return res;
+    }
+
+    /**
      * Slice the buffer.  The original buffer's position will be moved up past the slice that was taken.
      *
      * @see ByteBuffer#slice()
@@ -186,6 +298,7 @@ public final class Buffers {
      * @param allocator the buffer allocator to use
      * @return the buffer slice
      */
+    @Deprecated
     public static ByteBuffer copy(ByteBuffer buffer, int count, BufferAllocator<ByteBuffer> allocator) {
         final int oldRem = buffer.remaining();
         if (count > oldRem || count < -oldRem) {
@@ -226,13 +339,22 @@ public final class Buffers {
      * @return the number of bytes put into the destination buffer
      */
     public static int copy(final ByteBuffer destination, final ByteBuffer source) {
-        final int sr = source.remaining();
+        final int sl = source.limit();
+        final int sp = source.position();
+        final int sr = sl - sp;
         final int dr = destination.remaining();
-        if (dr >= sr) {
+        if (sr == 0 || dr == 0) {
+            return 0;
+        } else if (dr >= sr) {
             destination.put(source);
             return sr;
         } else {
-            destination.put(slice(source, dr));
+            source.limit(sp + dr);
+            try {
+                destination.put(source);
+            } finally {
+                source.limit(sl);
+            }
             return dr;
         }
     }
@@ -248,19 +370,8 @@ public final class Buffers {
      */
     public static int copy(final ByteBuffer[] destinations, final int offset, final int length, final ByteBuffer source) {
         int t = 0;
-        for (int i = 0; i < length; i ++) {
-            final ByteBuffer buffer = destinations[i + offset];
-            final int rem = buffer.remaining();
-            if (rem == 0) {
-                continue;
-            } else if (rem < source.remaining()) {
-                buffer.put(slice(source, rem));
-                t += rem;
-            } else {
-                t += source.remaining();
-                buffer.put(source);
-                return t;
-            }
+        for (int i = 0; i < length && source.hasRemaining(); i ++) {
+            t += copy(destinations[i + offset], source);
         }
         return t;
     }
@@ -276,19 +387,8 @@ public final class Buffers {
      */
     public static int copy(final ByteBuffer destination, final ByteBuffer[] sources, final int offset, final int length) {
         int t = 0;
-        for (int i = 0; i < length; i ++) {
-            final ByteBuffer buffer = sources[i + offset];
-            final int rem = buffer.remaining();
-            if (rem == 0) {
-                continue;
-            } else if (rem > destination.remaining()) {
-                t += destination.remaining();
-                destination.put(slice(buffer, destination.remaining()));
-                return t;
-            } else {
-                destination.put(buffer);
-                t += rem;
-            }
+        for (int i = 0; i < length && destination.hasRemaining(); i ++) {
+            t += copy(destination, sources[i + offset]);
         }
         return t;
     }
@@ -310,27 +410,14 @@ public final class Buffers {
         if (destLength == 0 || srcLength == 0) {
             return 0L;
         }
-        ByteBuffer source = sources[srcOffset];
-        ByteBuffer dest = destinations[destOffset];
+        ByteBuffer source;
+        ByteBuffer dest;
         while (s < srcLength && d < destLength) {
             source = sources[srcOffset + s];
             dest = destinations[destOffset + d];
-            final int sr = source.remaining();
-            final int dr = dest.remaining();
-            if (sr < dr) {
-                dest.put(source);
-                s++;
-                t += sr;
-            } else if (sr > dr) {
-                dest.put(slice(source, dr));
-                d++;
-                t += dr;
-            } else {
-                dest.put(source);
-                s++;
-                d++;
-                t += sr;
-            }
+            t += copy(dest, source);
+            if (! source.hasRemaining()) s++;
+            if (! dest.hasRemaining()) d++;
         }
         return t;
     }
@@ -344,11 +431,21 @@ public final class Buffers {
      * @return the number of bytes put into the destination buffer
      */
     public static int copy(int count, final ByteBuffer destination, final ByteBuffer source) {
-        int cnt = count >= 0? Math.min(Math.min(count, source.remaining()), destination.remaining()):
-            Math.max(Math.max(count, - source.remaining()), - destination.remaining());
-        final ByteBuffer copy = slice(source, cnt);
-        destination.put(copy);
-        return copy.position(); // cnt could be negative, so it is safer to return copy.position() instead of cnt
+        Assert.checkMinimumParameter("count", 0, count);
+        if (count == 0) return 0;
+        final int sl = source.limit();
+        final int sp = source.position();
+        final int sr = sl - sp;
+        final int dr = destination.remaining();
+        if (sr < count || sr < dr || dr < count) {
+            return copy(destination, source);
+        }
+        source.limit(sp + count);
+        try {
+            return copy(destination, source);
+        } finally {
+            source.limit(sl);
+        }
     }
 
     /**
@@ -362,18 +459,17 @@ public final class Buffers {
      * @return the number of bytes put into the destination buffers
      */
     public static int copy(int count, final ByteBuffer[] destinations, final int offset, final int length, final ByteBuffer source) {
-        if (source.remaining() > count) {
-            final int oldLimit = source.limit();
-            if (count < 0) {
-                // count from end (count is NEGATIVE)
-                throw msg.copyNegative();
-            } else {
-                try {
-                    source.limit(source.position() + count);
-                    return copy(destinations, offset, length, source);
-                } finally {
-                    source.limit(oldLimit);
-                }
+        Assert.checkMinimumParameter("count", 0, count);
+        if (count == 0 || length == 0) return 0;
+        final int sl = source.limit();
+        final int sp = source.position();
+        final int sr = sl - sp;
+        if (sr > count) {
+            source.limit(sp + count);
+            try {
+                return copy(destinations, offset, length, source);
+            } finally {
+                source.limit(sl);
             }
         } else {
             return copy(destinations, offset, length, source);
@@ -391,18 +487,17 @@ public final class Buffers {
      * @return the number of bytes put into the destination buffers
      */
     public static int copy(int count, final ByteBuffer destination, final ByteBuffer[] sources, final int offset, final int length) {
-        if (destination.remaining() > count) {
-            if (count < 0) {
-                // count from end (count is NEGATIVE)
-                throw msg.copyNegative();
-            } else {
-                final int oldLimit = destination.limit();
-                try {
-                    destination.limit(destination.position() + Math.min(count, destination.remaining()));
-                    return copy(destination, sources, offset, length);
-                } finally {
-                    destination.limit(oldLimit);
-                }
+        Assert.checkMinimumParameter("count", 0, count);
+        if (count == 0 || length == 0) return 0;
+        final int dp = destination.position();
+        final int dl = destination.limit();
+        final int dr = dl - dp;
+        if (dr > count) {
+            destination.limit(dp + count);
+            try {
+                return copy(destination, sources, offset, length);
+            } finally {
+                destination.limit(dl);
             }
         } else {
             return copy(destination, sources, offset, length);
@@ -422,37 +517,244 @@ public final class Buffers {
      * @return the number of bytes put into the destination buffers
      */
     public static long copy(long count, final ByteBuffer[] destinations, final int destOffset, final int destLength, final ByteBuffer[] sources, final int srcOffset, final int srcLength) {
+        Assert.checkMinimumParameter("count", 0L, count);
+        if (count == 0L || destLength == 0L || srcLength == 0L) return 0L;
+        long t = 0L, c;
+        int s = 0, d = 0;
+        ByteBuffer source;
+        ByteBuffer dest;
+        while (s < srcLength && d < destLength) {
+            source = sources[srcOffset + s];
+            dest = destinations[destOffset + d];
+            c = count > (long) Integer.MAX_VALUE ? copy(dest, source) : copy((int) count, dest, source);
+            t += c;
+            count -= c;
+            if (count == 0) break;
+            if (! source.hasRemaining()) s++;
+            if (! dest.hasRemaining()) d++;
+        }
+        return t;
+    }
+
+
+    /**
+     * Copy as many bytes as possible from {@code source} into {@code destination}, freeing the source buffer if it was
+     * emptied.
+     *
+     * @param destination the destination buffer
+     * @param source the source buffer
+     * @return the number of bytes put into the destination buffer
+     */
+    public static int copyAndFree(final ByteBuffer destination, final ByteBuffer source) {
+        final int sl = source.limit();
+        final int sp = source.position();
+        final int sr = sl - sp;
+        final int dr = destination.remaining();
+        if (sr == 0 || dr == 0) {
+            return 0;
+        } else if (dr >= sr) {
+            destination.put(source);
+            ByteBufferPool.free(source);
+            return sr;
+        } else {
+            source.limit(sp + dr);
+            try {
+                destination.put(source);
+            } finally {
+                source.limit(sl);
+            }
+            return dr;
+        }
+    }
+
+    /**
+     * Copy as many bytes as possible from {@code sources} into {@code destinations} in a "scatter" fashion, freeing the
+     * source buffer if it was emptied.
+     *
+     * @param destinations the destination buffers
+     * @param offset the offset into the destination buffers array
+     * @param length the number of buffers to update
+     * @param source the source buffer
+     * @return the number of bytes put into the destination buffers
+     */
+    public static int copyAndFree(final ByteBuffer[] destinations, final int offset, final int length, final ByteBuffer source) {
+        int t = 0;
+        for (int i = 0; i < length && source.hasRemaining(); i ++) {
+            t += copyAndFree(destinations[i + offset], source);
+        }
+        return t;
+    }
+
+    /**
+     * Copy as many bytes as possible from {@code sources} into {@code destination} in a "gather" fashion, freeing any
+     * source buffers that were emptied.
+     *
+     * @param destination the destination buffer
+     * @param sources the source buffers
+     * @param offset the offset into the source buffers array
+     * @param length the number of buffers to read from
+     * @return the number of bytes put into the destination buffers
+     */
+    public static int copyAndFree(final ByteBuffer destination, final ByteBuffer[] sources, final int offset, final int length) {
+        int t = 0;
+        for (int i = 0; i < length && destination.hasRemaining(); i++) {
+            t += copyAndFree(destination, sources[i + offset]);
+        }
+        return t;
+    }
+
+    /**
+     * Copy as many bytes as possible from {@code sources} into {@code destinations} by a combined "scatter"/"gather" operation, freeing any
+     * source buffers that were emptied.
+     *
+     * @param destinations the destination buffers
+     * @param destOffset the offset into the destination buffers array
+     * @param destLength the number of buffers to write to
+     * @param sources the source buffers
+     * @param srcOffset the offset into the source buffers array
+     * @param srcLength the number of buffers to read from
+     * @return the number of bytes put into the destination buffers
+     */
+    public static long copyAndFree(final ByteBuffer[] destinations, final int destOffset, final int destLength, final ByteBuffer[] sources, final int srcOffset, final int srcLength) {
         long t = 0L;
         int s = 0, d = 0;
-        if (count < 0) {
-            // count from end (count is NEGATIVE)
-            throw msg.copyNegative();
-        }
-        if (destLength == 0 || srcLength == 0 || count == 0L) {
+        if (destLength == 0 || srcLength == 0) {
             return 0L;
         }
+        ByteBuffer source;
+        ByteBuffer dest;
         while (s < srcLength && d < destLength) {
-            final ByteBuffer source = sources[srcOffset + s];
-            final ByteBuffer dest = destinations[destOffset + d];
-            final int sr = source.remaining();
-            final int dr = (int) Math.min(count, (long) dest.remaining());
-            if (sr < dr) {
-                dest.put(source);
-                s++;
-                t += sr;
-                count -= (long)sr;
-            } else if (sr > dr) {
-                dest.put(slice(source, dr));
-                d++;
-                t += dr;
-                count -= (long)dr;
-            } else {
-                dest.put(source);
-                s++;
-                d++;
-                t += sr;
-                count -= (long)sr;
+            source = sources[srcOffset + s];
+            dest = destinations[destOffset + d];
+            t += copy(dest, source);
+            if (! source.hasRemaining()) {
+                ByteBufferPool.free(source);
+                sources[srcOffset + s++] = null;
             }
+            if (! dest.hasRemaining()) d++;
+        }
+        return t;
+    }
+
+    /**
+     * Copy at most {@code count} bytes from {@code source} into {@code destination}, freeing the source buffer if it
+     * was emptied.
+     *
+     * @param count the maximum number of bytes to copy
+     * @param destination the destination buffer
+     * @param source the source buffer
+     * @return the number of bytes put into the destination buffer
+     */
+    public static int copyAndFree(int count, final ByteBuffer destination, final ByteBuffer source) {
+        Assert.checkMinimumParameter("count", 0, count);
+        if (count == 0) return 0;
+        final int sl = source.limit();
+        final int sp = source.position();
+        final int sr = sl - sp;
+        final int dr = destination.remaining();
+        if (sr < count || sr < dr) {
+            return copyAndFree(destination, source);
+        } else if (dr < count) {
+            return copy(destination, source);
+        }
+        source.limit(sp + count);
+        try {
+            return copy(destination, source);
+        } finally {
+            source.limit(sl);
+        }
+    }
+
+    /**
+     * Copy at most {@code count} bytes from {@code sources} into {@code destinations} in a "scatter" fashion, freeing
+     * the source buffer if it was emptied.
+     *
+     * @param count the maximum number of bytes to copy
+     * @param destinations the destination buffers
+     * @param offset the offset into the destination buffers array
+     * @param length the number of buffers to update
+     * @param source the source buffer
+     * @return the number of bytes put into the destination buffers
+     */
+    public static int copyAndFree(int count, final ByteBuffer[] destinations, final int offset, final int length, final ByteBuffer source) {
+        Assert.checkMinimumParameter("count", 0, count);
+        if (count == 0 || length == 0) return 0;
+        final int sl = source.limit();
+        final int sp = source.position();
+        final int sr = sl - sp;
+        if (sr > count) {
+            source.limit(sp + count);
+            try {
+                return copy(destinations, offset, length, source);
+            } finally {
+                source.limit(sl);
+            }
+        } else {
+            return copyAndFree(destinations, offset, length, source);
+        }
+    }
+
+    /**
+     * Copy at most {@code count} bytes from {@code sources} into {@code destination} in a "gather" fashion, freeing any
+     * source buffers that were emptied.
+     *
+     * @param count the maximum number of bytes to copy
+     * @param destination the destination buffer
+     * @param sources the source buffers
+     * @param offset the offset into the source buffers array
+     * @param length the number of buffers to read from
+     * @return the number of bytes put into the destination buffers
+     */
+    public static int copyAndFree(int count, final ByteBuffer destination, final ByteBuffer[] sources, final int offset, final int length) {
+        Assert.checkMinimumParameter("count", 0, count);
+        if (count == 0 || length == 0) return 0;
+        final int dp = destination.position();
+        final int dl = destination.limit();
+        final int dr = dl - dp;
+        if (dr > count) {
+            destination.limit(dp + count);
+            try {
+                return copyAndFree(destination, sources, offset, length);
+            } finally {
+                destination.limit(dl);
+            }
+        } else {
+            return copyAndFree(destination, sources, offset, length);
+        }
+    }
+
+    /**
+     * Copy at most {@code count} bytes from {@code sources} into {@code destinations} by a combined "scatter"/"gather"
+     * operation, freeing any source buffers that were emptied.
+     *
+     * @param count the maximum number of bytes to copy
+     * @param destinations the destination buffers
+     * @param destOffset the offset into the destination buffers array
+     * @param destLength the number of buffers to write to
+     * @param sources the source buffers
+     * @param srcOffset the offset into the source buffers array
+     * @param srcLength the number of buffers to read from
+     * @return the number of bytes put into the destination buffers
+     */
+    public static long copyAndFree(long count, final ByteBuffer[] destinations, final int destOffset, final int destLength, final ByteBuffer[] sources, final int srcOffset, final int srcLength) {
+        Assert.checkMinimumParameter("count", 0L, count);
+        if (count == 0L || destLength == 0L || srcLength == 0L) return 0L;
+        long t = 0L, c;
+        int s = 0, d = 0;
+        ByteBuffer source;
+        ByteBuffer dest;
+        while (s < srcLength && d < destLength) {
+            source = sources[srcOffset + s];
+            dest = destinations[destOffset + d];
+            c = count > (long) Integer.MAX_VALUE ? copy(dest, source) : copy((int) count, dest, source);
+            t += c;
+            count -= c;
+            if (! source.hasRemaining()) {
+                ByteBufferPool.free(source);
+                sources[srcOffset + s++] = null;
+            }
+            if (count == 0) break;
+            if (! dest.hasRemaining()) d++;
         }
         return t;
     }
@@ -482,242 +784,6 @@ public final class Buffers {
     }
 
     /**
-     * Slice the buffer.  The original buffer's position will be moved up past the slice that was taken.
-     *
-     * @see CharBuffer#slice()
-     * @param buffer the buffer to slice
-     * @param sliceSize the size of the slice
-     * @return the buffer slice
-     */
-    public static CharBuffer slice(CharBuffer buffer, int sliceSize) {
-        if (sliceSize > buffer.remaining() || sliceSize < -buffer.remaining()) {
-            throw msg.bufferUnderflow();
-        }
-        final int oldPos = buffer.position();
-        final int oldLim = buffer.limit();
-        if (sliceSize < 0) {
-            // count from end (sliceSize is NEGATIVE)
-            buffer.limit(oldLim + sliceSize);
-            try {
-                return buffer.slice();
-            } finally {
-                buffer.limit(oldLim);
-                buffer.position(oldLim + sliceSize);
-            }
-        } else {
-            // count from start
-            buffer.limit(oldPos + sliceSize);
-            try {
-                return buffer.slice();
-            } finally {
-                buffer.limit(oldLim);
-                buffer.position(oldPos + sliceSize);
-            }
-        }
-    }
-
-    /**
-     * Fill a buffer with a repeated value.
-     *
-     * @param buffer the buffer to fill
-     * @param value the value to fill
-     * @param count the number of chars to fill
-     * @return the buffer instance
-     */
-    public static CharBuffer fill(CharBuffer buffer, int value, int count) {
-        if (count > buffer.remaining()) {
-            throw msg.bufferUnderflow();
-        }
-        if (buffer.hasArray()) {
-            final int offs = buffer.arrayOffset();
-            Arrays.fill(buffer.array(), offs + buffer.position(), offs + buffer.limit(), (char) value);
-            skip(buffer, count);
-        } else {
-            for (int i = count; i > 0; i--) {
-                buffer.put((char)value);
-            }
-        }
-        return buffer;
-    }
-
-    /**
-     * Slice the buffer.  The original buffer's position will be moved up past the slice that was taken.
-     *
-     * @see ShortBuffer#slice()
-     * @param buffer the buffer to slice
-     * @param sliceSize the size of the slice
-     * @return the buffer slice
-     */
-    public static ShortBuffer slice(ShortBuffer buffer, int sliceSize) {
-        if (sliceSize > buffer.remaining() || sliceSize < -buffer.remaining()) {
-            throw msg.bufferUnderflow();
-        }
-        final int oldPos = buffer.position();
-        final int oldLim = buffer.limit();
-        if (sliceSize < 0) {
-            // count from end (sliceSize is NEGATIVE)
-            buffer.limit(oldLim + sliceSize);
-            try {
-                return buffer.slice();
-            } finally {
-                buffer.limit(oldLim);
-                buffer.position(oldLim + sliceSize);
-            }
-        } else {
-            // count from start
-            buffer.limit(oldPos + sliceSize);
-            try {
-                return buffer.slice();
-            } finally {
-                buffer.limit(oldLim);
-                buffer.position(oldPos + sliceSize);
-            }
-        }
-    }
-
-    /**
-     * Fill a buffer with a repeated value.
-     *
-     * @param buffer the buffer to fill
-     * @param value the value to fill
-     * @param count the number of shorts to fill
-     * @return the buffer instance
-     */
-    public static ShortBuffer fill(ShortBuffer buffer, int value, int count) {
-        if (count > buffer.remaining()) {
-            throw msg.bufferUnderflow();
-        }
-        if (buffer.hasArray()) {
-            final int offs = buffer.arrayOffset();
-            Arrays.fill(buffer.array(), offs + buffer.position(), offs + buffer.limit(), (short) value);
-            skip(buffer, count);
-        } else {
-            for (int i = count; i > 0; i--) {
-                buffer.put((short)value);
-            }
-        }
-        return buffer;
-    }
-
-    /**
-     * Slice the buffer.  The original buffer's position will be moved up past the slice that was taken.
-     *
-     * @see IntBuffer#slice()
-     * @param buffer the buffer to slice
-     * @param sliceSize the size of the slice
-     * @return the buffer slice
-     */
-    public static IntBuffer slice(IntBuffer buffer, int sliceSize) {
-        if (sliceSize > buffer.remaining() || sliceSize < -buffer.remaining()) {
-            throw msg.bufferUnderflow();
-        }
-        final int oldPos = buffer.position();
-        final int oldLim = buffer.limit();
-        if (sliceSize < 0) {
-            // count from end (sliceSize is NEGATIVE)
-            buffer.limit(oldLim + sliceSize);
-            try {
-                return buffer.slice();
-            } finally {
-                buffer.limit(oldLim);
-                buffer.position(oldLim + sliceSize);
-            }
-        } else {
-            // count from start
-            buffer.limit(oldPos + sliceSize);
-            try {
-                return buffer.slice();
-            } finally {
-                buffer.limit(oldLim);
-                buffer.position(oldPos + sliceSize);
-            }
-        }
-    }
-
-    /**
-     * Fill a buffer with a repeated value.
-     *
-     * @param buffer the buffer to fill
-     * @param value the value to fill
-     * @param count the number of ints to fill
-     * @return the buffer instance
-     */
-    public static IntBuffer fill(IntBuffer buffer, int value, int count) {
-        if (count > buffer.remaining()) {
-            throw msg.bufferUnderflow();
-        }
-        if (buffer.hasArray()) {
-            final int offs = buffer.arrayOffset();
-            Arrays.fill(buffer.array(), offs + buffer.position(), offs + buffer.limit(), value);
-            skip(buffer, count);
-        } else {
-            for (int i = count; i > 0; i--) {
-                buffer.put(value);
-            }
-        }
-        return buffer;
-    }
-
-    /**
-     * Slice the buffer.  The original buffer's position will be moved up past the slice that was taken.
-     *
-     * @see LongBuffer#slice()
-     * @param buffer the buffer to slice
-     * @param sliceSize the size of the slice
-     * @return the buffer slice
-     */
-    public static LongBuffer slice(LongBuffer buffer, int sliceSize) {
-        if (sliceSize > buffer.remaining() || sliceSize < -buffer.remaining()) {
-            throw msg.bufferUnderflow();
-        }
-        final int oldPos = buffer.position();
-        final int oldLim = buffer.limit();
-        if (sliceSize < 0) {
-            // count from end (sliceSize is NEGATIVE)
-            buffer.limit(oldLim + sliceSize);
-            try {
-                return buffer.slice();
-            } finally {
-                buffer.limit(oldLim);
-                buffer.position(oldLim + sliceSize);
-            }
-        } else {
-            // count from start
-            buffer.limit(oldPos + sliceSize);
-            try {
-                return buffer.slice();
-            } finally {
-                buffer.limit(oldLim);
-                buffer.position(oldPos + sliceSize);
-            }
-        }
-    }
-
-    /**
-     * Fill a buffer with a repeated value.
-     *
-     * @param buffer the buffer to fill
-     * @param value the value to fill
-     * @param count the number of longs to fill
-     * @return the buffer instance
-     */
-    public static LongBuffer fill(LongBuffer buffer, long value, int count) {
-        if (count > buffer.remaining()) {
-            throw msg.bufferUnderflow();
-        }
-        if (buffer.hasArray()) {
-            final int offs = buffer.arrayOffset();
-            Arrays.fill(buffer.array(), offs + buffer.position(), offs + buffer.limit(), value);
-            skip(buffer, count);
-        } else {
-            for (int i = count; i > 0; i--) {
-                buffer.put(value);
-            }
-        }
-        return buffer;
-    }
-
-    /**
      * Advance a buffer's position relative to its current position.
      *
      * @see Buffer#position(int)
@@ -728,13 +794,11 @@ public final class Buffers {
      * @throws BufferUnderflowException if there are fewer than {@code cnt} bytes remaining
      */
     public static <T extends Buffer> T skip(T buffer, int cnt) throws BufferUnderflowException {
-        if (cnt < 0) {
-            throw msg.parameterOutOfRange("cnt");
-        }
+        Assert.checkMinimumParameter("cnt", 0, cnt);
         if (cnt > buffer.remaining()) {
             throw msg.bufferUnderflow();
         }
-        buffer.position(buffer.position() + cnt);
+        if (cnt != 0) buffer.position(buffer.position() + cnt);
         return buffer;
     }
 
@@ -747,14 +811,12 @@ public final class Buffers {
      * @return the actual number of bytes skipped
      */
     public static int trySkip(Buffer buffer, int cnt) {
-        if (cnt < 0) {
-            throw msg.parameterOutOfRange("cnt");
-        }
+        Assert.checkMinimumParameter("cnt", 0, cnt);
         final int rem = buffer.remaining();
         if (cnt > rem) {
             cnt = rem;
         }
-        buffer.position(buffer.position() + cnt);
+        if (cnt != 0) buffer.position(buffer.position() + cnt);
         return cnt;
     }
 
@@ -769,21 +831,7 @@ public final class Buffers {
      * @return the actual number of bytes skipped
      */
     public static long trySkip(Buffer[] buffers, int offs, int len, long cnt) {
-        if (cnt < 0L) {
-            throw msg.parameterOutOfRange("cnt");
-        }
-        if (len < 0) {
-            throw msg.parameterOutOfRange("len");
-        }
-        if (offs < 0) {
-            throw msg.parameterOutOfRange("offs");
-        }
-        if (offs > buffers.length) {
-            throw msg.parameterOutOfRange("offs");
-        }
-        if (offs + len > buffers.length) {
-            throw msg.parameterOutOfRange("offs");
-        }
+        Assert.checkArrayBounds(buffers, offs, len);
         long c = 0L;
         for (int i = 0; i < len; i ++) {
             final Buffer buffer = buffers[offs + i];
@@ -810,9 +858,7 @@ public final class Buffers {
      * @return the buffer instance
      */
     public static <T extends Buffer> T unget(T buffer, int cnt) {
-        if (cnt < 0) {
-            throw msg.parameterOutOfRange("cnt");
-        }
+        Assert.checkMinimumParameter("cnt", 0, cnt);
         if (cnt > buffer.position()) {
             throw msg.bufferUnderflow();
         }
@@ -828,9 +874,7 @@ public final class Buffers {
      * @return the bytes
      */
     public static byte[] take(ByteBuffer buffer, int cnt) {
-        if (cnt < 0) {
-            throw msg.parameterOutOfRange("cnt");
-        }
+        Assert.checkMinimumParameter("cnt", 0, cnt);
         if (buffer.hasArray()) {
             final int pos = buffer.position();
             final int lim = buffer.limit();
@@ -846,118 +890,6 @@ public final class Buffers {
         final byte[] bytes = new byte[cnt];
         buffer.get(bytes);
         return bytes;
-    }
-
-    /**
-     * Take a certain number of chars from the buffer and return them in an array.
-     *
-     * @param buffer the buffer to read
-     * @param cnt the number of chars to take
-     * @return the chars
-     */
-    public static char[] take(CharBuffer buffer, int cnt) {
-        if (cnt < 0) {
-            throw msg.parameterOutOfRange("cnt");
-        }
-        if (buffer.hasArray()) {
-            final int pos = buffer.position();
-            final int lim = buffer.limit();
-            if (lim - pos < cnt) {
-                throw new BufferUnderflowException();
-            }
-            final char[] array = buffer.array();
-            final int offset = buffer.arrayOffset();
-            buffer.position(pos + cnt);
-            final int start = offset + pos;
-            return Arrays.copyOfRange(array, start, start + cnt);
-        }
-        final char[] chars = new char[cnt];
-        buffer.get(chars);
-        return chars;
-    }
-
-    /**
-     * Take a certain number of shorts from the buffer and return them in an array.
-     *
-     * @param buffer the buffer to read
-     * @param cnt the number of shorts to take
-     * @return the shorts
-     */
-    public static short[] take(ShortBuffer buffer, int cnt) {
-        if (cnt < 0) {
-            throw msg.parameterOutOfRange("cnt");
-        }
-        if (buffer.hasArray()) {
-            final int pos = buffer.position();
-            final int lim = buffer.limit();
-            if (lim - pos < cnt) {
-                throw new BufferUnderflowException();
-            }
-            final short[] array = buffer.array();
-            final int offset = buffer.arrayOffset();
-            buffer.position(pos + cnt);
-            final int start = offset + pos;
-            return Arrays.copyOfRange(array, start, start + cnt);
-        }
-        final short[] shorts = new short[cnt];
-        buffer.get(shorts);
-        return shorts;
-    }
-
-    /**
-     * Take a certain number of ints from the buffer and return them in an array.
-     *
-     * @param buffer the buffer to read
-     * @param cnt the number of ints to take
-     * @return the ints
-     */
-    public static int[] take(IntBuffer buffer, int cnt) {
-        if (cnt < 0) {
-            throw msg.parameterOutOfRange("cnt");
-        }
-        if (buffer.hasArray()) {
-            final int pos = buffer.position();
-            final int lim = buffer.limit();
-            if (lim - pos < cnt) {
-                throw new BufferUnderflowException();
-            }
-            final int[] array = buffer.array();
-            final int offset = buffer.arrayOffset();
-            buffer.position(pos + cnt);
-            final int start = offset + pos;
-            return Arrays.copyOfRange(array, start, start + cnt);
-        }
-        final int[] ints = new int[cnt];
-        buffer.get(ints);
-        return ints;
-    }
-
-    /**
-     * Take a certain number of longs from the buffer and return them in an array.
-     *
-     * @param buffer the buffer to read
-     * @param cnt the number of longs to take
-     * @return the longs
-     */
-    public static long[] take(LongBuffer buffer, int cnt) {
-        if (cnt < 0) {
-            throw msg.parameterOutOfRange("cnt");
-        }
-        if (buffer.hasArray()) {
-            final int pos = buffer.position();
-            final int lim = buffer.limit();
-            if (lim - pos < cnt) {
-                throw new BufferUnderflowException();
-            }
-            final long[] array = buffer.array();
-            final int offset = buffer.arrayOffset();
-            buffer.position(pos + cnt);
-            final int start = offset + pos;
-            return Arrays.copyOfRange(array, start, start + cnt);
-        }
-        final long[] longs = new long[cnt];
-        buffer.get(longs);
-        return longs;
     }
 
     private static final byte[] NO_BYTES = new byte[0];
@@ -1011,54 +943,6 @@ public final class Buffers {
     }
 
     /**
-     * Take all of the remaining chars from the buffer and return them in an array.
-     *
-     * @param buffer the buffer to read
-     * @return the chars
-     */
-    public static char[] take(CharBuffer buffer) {
-        final char[] chars = new char[buffer.remaining()];
-        buffer.get(chars);
-        return chars;
-    }
-
-    /**
-     * Take all of the remaining shorts from the buffer and return them in an array.
-     *
-     * @param buffer the buffer to read
-     * @return the shorts
-     */
-    public static short[] take(ShortBuffer buffer) {
-        final short[] shorts = new short[buffer.remaining()];
-        buffer.get(shorts);
-        return shorts;
-    }
-
-    /**
-     * Take all of the remaining ints from the buffer and return them in an array.
-     *
-     * @param buffer the buffer to read
-     * @return the ints
-     */
-    public static int[] take(IntBuffer buffer) {
-        final int[] ints = new int[buffer.remaining()];
-        buffer.get(ints);
-        return ints;
-    }
-
-    /**
-     * Take all of the remaining longs from the buffer and return them in an array.
-     *
-     * @param buffer the buffer to read
-     * @return the longs
-     */
-    public static long[] take(LongBuffer buffer) {
-        final long[] longs = new long[buffer.remaining()];
-        buffer.get(longs);
-        return longs;
-    }
-
-    /**
      * Create an object that returns the dumped form of the given byte buffer when its {@code toString()} method is called.
      * Useful for logging byte buffers; if the {@code toString()} method is never called, the process of dumping the
      * buffer is never performed.
@@ -1069,12 +953,8 @@ public final class Buffers {
      * @return a stringable object
      */
     public static Object createDumper(final ByteBuffer buffer, final int indent, final int columns) {
-        if (columns <= 0) {
-            throw msg.parameterOutOfRange("columns");
-        }
-        if (indent < 0) {
-            throw msg.parameterOutOfRange("indent");
-        }
+        Assert.checkMinimumParameter("columns", 1, columns);
+        Assert.checkMinimumParameter("indent", 0, indent);
         return new Object() {
             public String toString() {
                 StringBuilder b = new StringBuilder();
@@ -1098,12 +978,8 @@ public final class Buffers {
      * @throws IOException if an error occurs during append
      */
     public static void dump(final ByteBuffer buffer, final Appendable dest, final int indent, final int columns) throws IOException {
-        if (columns <= 0) {
-            throw msg.parameterOutOfRange("columns");
-        }
-        if (indent < 0) {
-            throw msg.parameterOutOfRange("indent");
-        }
+        Assert.checkMinimumParameter("columns", 1, columns);
+        Assert.checkMinimumParameter("indent", 0, indent);
         final int pos = buffer.position();
         final int remaining = buffer.remaining();
         final int rowLength = (8 << (columns - 1));
@@ -1171,116 +1047,6 @@ public final class Buffers {
     }
 
     /**
-     * Create an object that returns the dumped form of the given character buffer when its {@code toString()} method is called.
-     * Useful for logging character buffers; if the {@code toString()} method is never called, the process of dumping the
-     * buffer is never performed.
-     *
-     * @param buffer the buffer
-     * @param indent the indentation to use
-     * @param columns the number of 8-byte columns
-     * @return a stringable object
-     */
-    public static Object createDumper(final CharBuffer buffer, final int indent, final int columns) {
-        if (columns <= 0) {
-            throw msg.parameterOutOfRange("columns");
-        }
-        if (indent < 0) {
-            throw msg.parameterOutOfRange("indent");
-        }
-        return new Object() {
-            public String toString() {
-                StringBuilder b = new StringBuilder();
-                try {
-                    dump(buffer, b, indent, columns);
-                } catch (IOException e) {
-                    // ignore, not possible!
-                }
-                return b.toString();
-            }
-        };
-    }
-
-    /**
-     * Dump a character buffer to the given target.
-     *
-     * @param buffer the buffer
-     * @param dest the target
-     * @param indent the indentation to use
-     * @param columns the number of 8-byte columns
-     * @throws IOException if an error occurs during append
-     */
-    public static void dump(final CharBuffer buffer, final Appendable dest, final int indent, final int columns) throws IOException {
-        if (columns <= 0) {
-            throw msg.parameterOutOfRange("columns");
-        }
-        if (indent < 0) {
-            throw msg.parameterOutOfRange("indent");
-        }
-        final int pos = buffer.position();
-        final int remaining = buffer.remaining();
-        final int rowLength = (8 << (columns - 1));
-        final int n = Math.max(Integer.toString(buffer.remaining(), 16).length(), 4);
-        for (int idx = 0; idx < remaining; idx += rowLength) {
-            // state: start of line
-            for (int i = 0; i < indent; i ++) {
-                dest.append(' ');
-            }
-            final String s = Integer.toString(idx, 16);
-            for (int i = n - s.length(); i > 0; i --) {
-                dest.append('0');
-            }
-            dest.append(s);
-            dest.append(" - ");
-            appendHexRow(buffer, dest, pos + idx, columns);
-            appendTextRow(buffer, dest, pos + idx, columns);
-            dest.append('\n');
-        }
-    }
-
-    private static void appendHexRow(final CharBuffer buffer, final Appendable dest, final int startPos, final int columns) throws IOException {
-        final int limit = buffer.limit();
-        int pos = startPos;
-        for (int c = 0; c < columns; c ++) {
-            for (int i = 0; i < 8; i ++) {
-                if (pos >= limit) {
-                    dest.append("  ");
-                } else {
-                    final char v = buffer.get(pos++);
-                    final String hexVal = Integer.toString(v, 16);
-                    dest.append("0000".substring(hexVal.length()));
-                    dest.append(hexVal);
-                }
-                dest.append(' ');
-            }
-            dest.append(' ');
-            dest.append(' ');
-        }
-    }
-
-    private static void appendTextRow(final CharBuffer buffer, final Appendable dest, final int startPos, final int columns) throws IOException {
-        final int limit = buffer.limit();
-        int pos = startPos;
-        dest.append('[');
-        dest.append(' ');
-        for (int c = 0; c < columns; c ++) {
-            for (int i = 0; i < 8; i ++) {
-                if (pos >= limit) {
-                    dest.append(' ');
-                } else {
-                    final char v = buffer.get(pos++);
-                    if (Character.isISOControl(v) || Character.isHighSurrogate(v) || Character.isLowSurrogate(v)) {
-                        dest.append('.');
-                    } else {
-                        dest.append(v);
-                    }
-                }
-            }
-            dest.append(' ');
-        }
-        dest.append(']');
-    }
-
-    /**
      * The empty byte buffer.
      */
     public static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
@@ -1288,6 +1054,7 @@ public final class Buffers {
     /**
      * The empty pooled byte buffer.  Freeing or discarding this buffer has no effect.
      */
+    @Deprecated
     public static final Pooled<ByteBuffer> EMPTY_POOLED_BYTE_BUFFER = emptyPooledByteBuffer();
 
     /**
@@ -1917,6 +1684,7 @@ public final class Buffers {
      * @param <B> the buffer type
      * @return the pooled wrapper
      */
+    @Deprecated
     public static <B extends Buffer> Pooled<B> pooledWrapper(final B buffer) {
         return new Pooled<B>() {
             private volatile B buf = buffer;
@@ -1953,6 +1721,7 @@ public final class Buffers {
      *
      * @return a new pooled empty buffer
      */
+    @Deprecated
     public static Pooled<ByteBuffer> emptyPooledByteBuffer() {
         return new Pooled<ByteBuffer>() {
             public void discard() {
@@ -1977,6 +1746,7 @@ public final class Buffers {
      * @param buffer the source buffer
      * @return the slice allocator
      */
+    @Deprecated
     public static BufferAllocator<ByteBuffer> sliceAllocator(final ByteBuffer buffer) {
         return new BufferAllocator<ByteBuffer>() {
             public ByteBuffer allocate(final int size) throws IllegalArgumentException {
@@ -1993,6 +1763,7 @@ public final class Buffers {
      * @param <B> the buffer type
      * @return the buffer pool
      */
+    @Deprecated
     public static <B extends Buffer> Pool<B> allocatedBufferPool(final BufferAllocator<B> allocator, final int size) {
         return new Pool<B>() {
             public Pooled<B> allocate() {
@@ -2007,6 +1778,7 @@ public final class Buffers {
      * @param delegate the delegate pool
      * @return the wrapper pool
      */
+    @Deprecated
     public static Pool<ByteBuffer> secureBufferPool(final Pool<ByteBuffer> delegate) {
         return new SecureByteBufferPool(delegate);
     }
@@ -2018,9 +1790,12 @@ public final class Buffers {
      * @param pool the pool to test
      * @return {@code true} if it is a secure pool instance
      */
+    @Deprecated
     public static boolean isSecureBufferPool(Pool<?> pool) {
         return pool instanceof SecureByteBufferPool;
     }
+
+    private static final byte[] ZEROS = new byte[1024];
 
     /**
      * Zero a buffer.  Ensures that any potentially sensitive information in the buffer is
@@ -2030,30 +1805,11 @@ public final class Buffers {
      */
     public static void zero(ByteBuffer buffer) {
         buffer.clear();
-        while (buffer.remaining() >= 8) {
-            buffer.putLong(0L);
+        while (buffer.remaining() >= 1024) {
+            buffer.put(ZEROS);
         }
-        while (buffer.hasRemaining()) {
-            buffer.put((byte) 0);
-        }
-        buffer.clear();
-    }
-
-    /**
-     * Zero a buffer.  Ensures that any potentially sensitive information in the buffer is
-     * overwritten.
-     *
-     * @param buffer the buffer
-     */
-    public static void zero(CharBuffer buffer) {
-        buffer.clear();
-        while (buffer.remaining() >= 32) {
-            buffer.put("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
-        }
-        while (buffer.hasRemaining()) {
-            buffer.put('\0');
-        }
-        buffer.clear();
+        buffer.put(ZEROS, 0, buffer.remaining());
+        buffer.position(0);
     }
 
     /**
@@ -2078,10 +1834,7 @@ public final class Buffers {
         boolean foundDirect = false;
         boolean foundHeap = false;
         for (int i = 0; i < length; i ++) {
-            final Buffer buffer = buffers[i + offset];
-            if (buffer == null) {
-                throw msg.nullParameter("buffer");
-            }
+            final Buffer buffer = Assert.checkNotNullArrayParam("buffers", i + offset, buffers[i + offset]);
             if (buffer.isDirect()) {
                 if (foundHeap) {
                     throw msg.mixedDirectAndHeap();
@@ -2143,7 +1896,7 @@ public final class Buffers {
      * @param count the number of bytes to add
      */
     public static void addRandom(ByteBuffer target, int count) {
-        addRandom(target, IoUtils.getThreadLocalRandom(), count);
+        addRandom(target, ThreadLocalRandom.current(), count);
     }
 
     /**
@@ -2165,7 +1918,7 @@ public final class Buffers {
      * @param target the target buffer
      */
     public static void addRandom(ByteBuffer target) {
-        addRandom(target, IoUtils.getThreadLocalRandom());
+        addRandom(target, ThreadLocalRandom.current());
     }
 
     /**
@@ -2283,6 +2036,7 @@ public final class Buffers {
         }
     }
 
+    @Deprecated
     private static class SecureByteBufferPool implements Pool<ByteBuffer> {
 
         private final Pool<ByteBuffer> delegate;
@@ -2296,6 +2050,7 @@ public final class Buffers {
         }
     }
 
+    @Deprecated
     private static class SecurePooledByteBuffer implements Pooled<ByteBuffer> {
 
         private static final AtomicIntegerFieldUpdater<SecurePooledByteBuffer> freedUpdater = AtomicIntegerFieldUpdater.newUpdater(SecurePooledByteBuffer.class, "freed");

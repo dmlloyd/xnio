@@ -18,8 +18,7 @@
 
 package org.xnio.conduits;
 
-import static org.xnio._private.Messages.msg;
-
+import org.wildfly.common.Assert;
 import org.xnio.XnioWorker;
 
 /**
@@ -27,6 +26,7 @@ import org.xnio.XnioWorker;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class AbstractConduit<D extends Conduit> implements Conduit {
 
     /**
@@ -40,9 +40,7 @@ public abstract class AbstractConduit<D extends Conduit> implements Conduit {
      * @param next the delegate conduit to set
      */
     protected AbstractConduit(final D next) {
-        if (next == null) {
-            throw msg.nullParameter("next");
-        }
+        Assert.checkNotNullParam("next", next);
         this.next = next;
     }
 

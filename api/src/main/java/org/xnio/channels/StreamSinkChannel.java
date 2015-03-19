@@ -30,6 +30,7 @@ import org.xnio.ChannelListener;
  * thread-safe, writing a stream from more than one thread concurrently will cause data corruption and may be
  * disallowed at the option of the implementation.
  */
+@Deprecated
 public interface StreamSinkChannel extends WritableByteChannel, GatheringByteChannel, SuspendableWriteChannel {
 
     /**

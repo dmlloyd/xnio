@@ -27,6 +27,8 @@ import static org.xnio._private.Messages.msg;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+
+import org.wildfly.common.Assert;
 import org.xnio.Bits;
 import org.xnio.Buffers;
 import org.xnio.channels.Channels;
@@ -40,6 +42,7 @@ import org.xnio.channels.StreamSourceChannel;
  *
  * @since 2.1
  */
+@Deprecated
 public class BufferedChannelInputStream extends InputStream {
     private final StreamSourceChannel channel;
     private final ByteBuffer buffer;
@@ -59,12 +62,8 @@ public class BufferedChannelInputStream extends InputStream {
      * @param bufferSize the size of the internal buffer
      */
     public BufferedChannelInputStream(final StreamSourceChannel channel, final int bufferSize) {
-        if (channel == null) {
-            throw msg.nullParameter("channel");
-        }
-        if (bufferSize < 1) {
-            throw msg.parameterOutOfRange("bufferSize");
-        }
+        Assert.checkNotNullParam("channel", channel);
+        Assert.checkMinimumParameter("bufferSize", 1, bufferSize);
         this.channel = channel;
         buffer = ByteBuffer.allocate(bufferSize);
         buffer.limit(0);
@@ -79,18 +78,10 @@ public class BufferedChannelInputStream extends InputStream {
      * @param unit the time unit for the read timeout
      */
     public BufferedChannelInputStream(final StreamSourceChannel channel, final int bufferSize, final long timeout, final TimeUnit unit) {
-        if (channel == null) {
-            throw msg.nullParameter("channel");
-        }
-        if (unit == null) {
-            throw msg.nullParameter("unit");
-        }
-        if (bufferSize < 1) {
-            throw msg.parameterOutOfRange("bufferSize");
-        }
-        if (timeout < 0L) {
-            throw msg.parameterOutOfRange("timeout");
-        }
+        Assert.checkNotNullParam("channel", channel);
+        Assert.checkNotNullParam("unit", unit);
+        Assert.checkMinimumParameter("bufferSize", 1, bufferSize);
+        Assert.checkMinimumParameter("timeout", 0L, timeout);
         this.channel = channel;
         buffer = ByteBuffer.allocate(bufferSize);
         buffer.limit(0);
@@ -126,9 +117,7 @@ public class BufferedChannelInputStream extends InputStream {
      * @return the timeout in the given unit
      */
     public long getReadTimeout(TimeUnit unit) {
-        if (unit == null) {
-            throw msg.nullParameter("unit");
-        }
+        Assert.checkNotNullParam("unit", unit);
         return unit.convert(timeout, TimeUnit.NANOSECONDS);
     }
 
@@ -139,12 +128,8 @@ public class BufferedChannelInputStream extends InputStream {
      * @param unit the time unit
      */
     public void setReadTimeout(long timeout, TimeUnit unit) {
-        if (timeout < 0L) {
-            throw msg.parameterOutOfRange("timeout");
-        }
-        if (unit == null) {
-            throw msg.nullParameter("unit");
-        }
+        Assert.checkMinimumParameter("timeout", 0L, timeout);
+        Assert.checkNotNullParam("unit", unit);
         final long calcTimeout = unit.toNanos(timeout);
         this.timeout = timeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
     }

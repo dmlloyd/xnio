@@ -20,11 +20,8 @@ package org.xnio;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.nio.channels.FileChannel;
@@ -39,13 +36,11 @@ import java.util.Iterator;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
+
+import org.wildfly.common.Assert;
+import org.xnio.management.XnioBufferPoolMXBean;
 import org.xnio.management.XnioProviderMXBean;
 import org.xnio.management.XnioServerMXBean;
 import org.xnio.management.XnioWorkerMXBean;
@@ -76,31 +71,37 @@ public abstract class Xnio {
 
     private static final MBeanServer MBEAN_SERVER;
 
-    /**
-     * A flag indicating the presence of NIO.2 (JDK 7).
-     */
-    public static final boolean NIO2;
-
     static {
-        boolean nio2 = false;
-        try {
-            // try to find an NIO.2 interface on the system class path
-            Class.forName("java.nio.channels.MulticastChannel", false, null);
-            nio2 = true;
-        } catch (Throwable t) {
-        }
-        NIO2 = nio2;
         msg.greeting(Version.VERSION);
         final EnumMap<FileAccess, OptionMap> map = new EnumMap<FileAccess, OptionMap>(FileAccess.class);
         for (FileAccess access : FileAccess.values()) {
             map.put(access, OptionMap.create(Options.FILE_ACCESS, access));
         }
         FILE_ACCESS_OPTION_MAPS = map;
-        MBEAN_SERVER = doPrivileged(new PrivilegedAction<MBeanServer>() {
-            public MBeanServer run() {
-                return ManagementFactory.getPlatformMBeanServer();
+        final MBeanServer mbeanServer = doPrivileged((PrivilegedAction<MBeanServer>) ManagementFactory::getPlatformMBeanServer);
+        doPrivileged(new PrivilegedAction<Void>() {
+            public Void run() {
+                try {
+                    final ObjectName objectName = new ObjectName("org.xnio", ObjectProperties.properties(ObjectProperties.property("type", "XnioBufferPool")));
+                    mbeanServer.registerMBean(new XnioBufferPoolMXBean() {
+                        public long getTotalBytesAllocated() {
+                            return ByteBufferPool.getTotalBytesAllocated();
+                        }
+
+                        public long getTotalDirectBytesAllocated() {
+                            return ByteBufferPool.getTotalDirectBytesAllocated();
+                        }
+
+                        public long getTotalHeapBytesAllocated() {
+                            return ByteBufferPool.getTotalHeapBytesAllocated();
+                        }
+                    }, objectName);
+                } catch (Exception ignored) {
+                }
+                return null;
             }
         });
+        MBEAN_SERVER = mbeanServer;
     }
 
     /**
@@ -115,17 +116,11 @@ public abstract class Xnio {
      * @param name the provider name
      */
     protected Xnio(String name) {
-        if (name == null) {
-            throw msg.nullParameter("name");
-        }
+        Assert.checkNotNullParam("name", name);
         this.name = name;
     }
 
-    private static final ThreadLocal<Boolean> BLOCKING = new ThreadLocal<Boolean>() {
-        protected Boolean initialValue() {
-            return Boolean.TRUE;
-        }
-    };
+    private static final ThreadLocal<Boolean> BLOCKING = ThreadLocal.withInitial(() -> Boolean.TRUE);
 
     /**
      * Allow (or disallow) blocking I/O on the current thread.  Requires the {@code changeThreadBlockingSetting}
@@ -251,6 +246,7 @@ public abstract class Xnio {
      * @return the SSL provider
      * @throws GeneralSecurityException if an exception occurred configuring the SSL provider
      */
+    @Deprecated
     public XnioSsl getSslProvider(final OptionMap optionMap) throws GeneralSecurityException {
         return new JsseXnioSsl(this, optionMap);
     }
@@ -264,6 +260,7 @@ public abstract class Xnio {
      * @return the SSL provider
      * @throws GeneralSecurityException if an exception occurred configuring the SSL provider
      */
+    @Deprecated
     public XnioSsl getSslProvider(final KeyManager[] keyManagers, final TrustManager[] trustManagers, final OptionMap optionMap) throws GeneralSecurityException {
         return new JsseXnioSsl(this, optionMap, JsseSslUtils.createSSLContext(keyManagers, trustManagers, null, optionMap));
     }
@@ -274,70 +271,6 @@ public abstract class Xnio {
     //
     //==================================================
 
-    private interface Opener {
-        FileChannel openFile(File file, OptionMap options) throws IOException;
-    }
-
-    private static final Opener OPENER = NIO2 ? new Nio2Opener() : new Nio1Opener();
-
-    private static final class Nio1Opener implements Opener {
-        public FileChannel openFile(final File file, final OptionMap options) throws IOException {
-            final FileAccess fileAccess = options.get(Options.FILE_ACCESS, FileAccess.READ_WRITE);
-            final boolean append = options.get(Options.FILE_APPEND, false);
-            final boolean create = options.get(Options.FILE_CREATE, fileAccess != FileAccess.READ_ONLY);
-            if (fileAccess == FileAccess.READ_ONLY) {
-                if (append) {
-                    throw msg.readAppendNotSupported();
-                }
-                if (create) {
-                    throw msg.openModeRequires7();
-                }
-                return new XnioFileChannel(new FileInputStream(file).getChannel());
-            } else if (fileAccess == FileAccess.READ_WRITE) {
-                if (append) {
-                    throw msg.openModeRequires7();
-                }
-                if (! create) {
-                    throw msg.openModeRequires7();
-                }
-                return new XnioFileChannel(new RandomAccessFile(file, "rw").getChannel());
-            } else if (fileAccess == FileAccess.WRITE_ONLY) {
-                if (! create) {
-                    throw msg.openModeRequires7();
-                }
-                return new XnioFileChannel(new FileOutputStream(file, append).getChannel());
-            } else {
-                throw new IllegalStateException();
-            }
-        }
-    }
-
-    private static final class Nio2Opener implements Opener {
-        public FileChannel openFile(final File file, final OptionMap options) throws IOException {
-            try {
-                final FileAccess fileAccess = options.get(Options.FILE_ACCESS, FileAccess.READ_WRITE);
-                final boolean append = options.get(Options.FILE_APPEND, false);
-                final boolean create = options.get(Options.FILE_CREATE, fileAccess != FileAccess.READ_ONLY);
-                final EnumSet<StandardOpenOption> openOptions = EnumSet.noneOf(StandardOpenOption.class);
-                if (create) {
-                    openOptions.add(StandardOpenOption.CREATE);
-                }
-                if (fileAccess.isRead()) {
-                    openOptions.add(StandardOpenOption.READ);
-                }
-                if (fileAccess.isWrite()) {
-                    openOptions.add(StandardOpenOption.WRITE);
-                }
-                if (append) {
-                    openOptions.add(StandardOpenOption.APPEND);
-                }
-                return new XnioFileChannel(FileChannel.open(file.toPath(), openOptions.toArray(new StandardOpenOption[openOptions.size()])));
-            } catch (NoSuchFileException e) {
-                throw new FileNotFoundException(e.getMessage());
-            }
-        }
-    }
-
     /**
      * Open a file on the filesystem.
      *
@@ -347,13 +280,29 @@ public abstract class Xnio {
      * @throws IOException if an I/O error occurs
      */
     public FileChannel openFile(File file, OptionMap options) throws IOException {
-        if (file == null) {
-            throw msg.nullParameter("file");
+        Assert.checkNotNullParam("file", file);
+        Assert.checkNotNullParam("options", options);
+        try {
+            final FileAccess fileAccess = options.get(Options.FILE_ACCESS, FileAccess.READ_WRITE);
+            final boolean append = options.get(Options.FILE_APPEND, false);
+            final boolean create = options.get(Options.FILE_CREATE, fileAccess != FileAccess.READ_ONLY);
+            final EnumSet<StandardOpenOption> openOptions = EnumSet.noneOf(StandardOpenOption.class);
+            if (create) {
+                openOptions.add(StandardOpenOption.CREATE);
+            }
+            if (fileAccess.isRead()) {
+                openOptions.add(StandardOpenOption.READ);
+            }
+            if (fileAccess.isWrite()) {
+                openOptions.add(StandardOpenOption.WRITE);
+            }
+            if (append) {
+                openOptions.add(StandardOpenOption.APPEND);
+            }
+            return new XnioFileChannel(FileChannel.open(file.toPath(), openOptions.toArray(new StandardOpenOption[openOptions.size()])));
+        } catch (NoSuchFileException e) {
+            throw new FileNotFoundException(e.getMessage());
         }
-        if (options == null) {
-            throw msg.nullParameter("options");
-        }
-        return OPENER.openFile(file, options);
     }
 
     /**
@@ -365,9 +314,7 @@ public abstract class Xnio {
      * @throws IOException if an I/O error occurs
      */
     public FileChannel openFile(String fileName, OptionMap options) throws IOException {
-        if (fileName == null) {
-            throw msg.nullParameter("fileName");
-        }
+        Assert.checkNotNullParam("fileName", fileName);
         return openFile(new File(fileName), options);
     }
 
@@ -380,9 +327,7 @@ public abstract class Xnio {
      * @throws IOException if an I/O error occurs
      */
     public FileChannel openFile(File file, FileAccess access) throws IOException {
-        if (access == null) {
-            throw msg.nullParameter("access");
-        }
+        Assert.checkNotNullParam("access", access);
         return openFile(file, FILE_ACCESS_OPTION_MAPS.get(access));
     }
 
@@ -395,12 +340,8 @@ public abstract class Xnio {
      * @throws IOException if an I/O error occurs
      */
     public FileChannel openFile(String fileName, FileAccess access) throws IOException {
-        if (access == null) {
-            throw msg.nullParameter("access");
-        }
-        if (fileName == null) {
-            throw msg.nullParameter("fileName");
-        }
+        Assert.checkNotNullParam("access", access);
+        Assert.checkNotNullParam("fileName", fileName);
         return openFile(new File(fileName), FILE_ACCESS_OPTION_MAPS.get(access));
     }
 
@@ -585,6 +526,7 @@ public abstract class Xnio {
         }
     }
 
+    @SuppressWarnings("serial")
     static class MBeanCloseable extends AtomicBoolean implements Closeable {
 
         private final ObjectName objectName;

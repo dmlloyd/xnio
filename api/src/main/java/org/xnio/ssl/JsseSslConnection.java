@@ -15,6 +15,7 @@ import org.xnio.Pool;
 import org.xnio.SslClientAuthMode;
 import org.xnio.StreamConnection;
 
+@Deprecated
 final class JsseSslConnection extends SslConnection {
     private final StreamConnection streamConnection;
     private final JsseStreamConduit conduit;
@@ -85,7 +86,7 @@ final class JsseSslConnection extends SslConnection {
 
     /** {@inheritDoc} */
     @Override
-    public <T> T setOption(final Option<T> option, final T value) throws IllegalArgumentException, IOException {
+    public <T> T setOption(final Option<T> option, final T value) throws IOException {
         if (option == Options.SSL_CLIENT_AUTH_MODE) {
             final SSLEngine engine = conduit.getEngine();
             try {

@@ -25,6 +25,7 @@ import org.xnio.ChannelListener;
 /**
  * A channel that can send messages.
  */
+@Deprecated
 public interface WritableMessageChannel extends SuspendableWriteChannel, Configurable {
     /**
      * Send a complete message.

@@ -38,20 +38,18 @@ import org.xnio.Option;
 import org.xnio.ChannelListener;
 import org.xnio.Options;
 import org.xnio.XnioExecutor;
-import org.xnio.channels.MulticastMessageChannel;
+import org.xnio.channels.MulticastSocketChannel;
 import org.xnio.channels.ReadListenerSettable;
 import org.xnio.channels.SocketAddressBuffer;
-import org.xnio.channels.UnsupportedOptionException;
 import org.xnio.channels.WriteListenerSettable;
 
-import static org.xnio.Xnio.NIO2;
 import static org.xnio.nio.Log.log;
 import static org.xnio.nio.Log.udpServerChannelLog;
 
 /**
  *
  */
-class NioUdpChannel extends AbstractNioChannel<NioUdpChannel> implements MulticastMessageChannel, ReadListenerSettable<NioUdpChannel>, WriteListenerSettable<NioUdpChannel> {
+class NioUdpChannel extends AbstractNioChannel<NioUdpChannel> implements MulticastSocketChannel, ReadListenerSettable<NioUdpChannel>, WriteListenerSettable<NioUdpChannel> {
 
     private final NioUdpChannelHandle handle;
 
@@ -292,7 +290,7 @@ class NioUdpChannel extends AbstractNioChannel<NioUdpChannel> implements Multica
         return OPTIONS.contains(option);
     }
 
-    public <T> T getOption(final Option<T> option) throws UnsupportedOptionException, IOException {
+    public <T> T getOption(final Option<T> option) {
         final DatagramChannel channel = datagramChannel;
         final DatagramSocket socket = channel.socket();
         if (option == Options.RECEIVE_BUFFER) {
@@ -304,7 +302,7 @@ class NioUdpChannel extends AbstractNioChannel<NioUdpChannel> implements Multica
         } else if (option == Options.IP_TRAFFIC_CLASS) {
             return option.cast(Integer.valueOf(socket.getTrafficClass()));
         } else {
-            if (NIO2) {
+            if (true) {
                 if (option == Options.MULTICAST_TTL) {
                     return option.cast(channel.getOption(StandardSocketOptions.IP_MULTICAST_TTL));
                 } else {
@@ -316,7 +314,7 @@ class NioUdpChannel extends AbstractNioChannel<NioUdpChannel> implements Multica
         }
     }
 
-    public <T> T setOption(final Option<T> option, final T value) throws IllegalArgumentException, IOException {
+    public <T> T setOption(final Option<T> option, final T value) {
         final DatagramChannel channel = datagramChannel;
         final DatagramSocket socket = channel.socket();
         final Object old;
@@ -341,7 +339,7 @@ class NioUdpChannel extends AbstractNioChannel<NioUdpChannel> implements Multica
             old = Boolean.valueOf(socket.getBroadcast());
             socket.setBroadcast(Options.BROADCAST.cast(value, Boolean.FALSE).booleanValue());
         } else {
-            if (NIO2) {
+            if (true) {
                 if (option == Options.MULTICAST_TTL) {
                     old = option.cast(channel.getOption(StandardSocketOptions.IP_MULTICAST_TTL));
                     channel.setOption(StandardSocketOptions.IP_MULTICAST_TTL, (Integer) value);
@@ -378,7 +376,7 @@ class NioUdpChannel extends AbstractNioChannel<NioUdpChannel> implements Multica
             return this;
         }
 
-        public MulticastMessageChannel getChannel() {
+        public MulticastSocketChannel getChannel() {
             return NioUdpChannel.this;
         }
 

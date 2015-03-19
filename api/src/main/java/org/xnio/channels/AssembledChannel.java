@@ -35,6 +35,7 @@ import static org.xnio._private.Messages.msg;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public class AssembledChannel implements CloseableChannel {
 
     private final SuspendableReadChannel readChannel;

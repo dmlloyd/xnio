@@ -30,6 +30,7 @@ import org.xnio.channels.WriteListenerSettable;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface WriteReadyHandler extends TerminateHandler {
     /**
      * Signify that writes are ready.

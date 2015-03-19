@@ -19,7 +19,7 @@
 
 package org.xnio;
 
-import static org.xnio._private.Messages.msg;
+import org.wildfly.common.Assert;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
@@ -33,9 +33,7 @@ final class SingleOption<T> extends Option<T> {
 
     SingleOption(final Class<?> declClass, final String name, final Class<T> type) {
         super(declClass, name);
-        if (type == null) {
-            throw msg.nullParameter("type");
-        }
+        Assert.checkNotNullParam("type", type);
         this.type = type;
         parser = Option.getParser(type);
     }

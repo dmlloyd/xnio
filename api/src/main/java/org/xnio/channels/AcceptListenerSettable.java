@@ -26,6 +26,7 @@ import org.xnio.ChannelListener;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface AcceptListenerSettable<C extends Channel> {
     /**
      * Get the accept listener.

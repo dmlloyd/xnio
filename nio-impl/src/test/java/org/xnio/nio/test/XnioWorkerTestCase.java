@@ -49,7 +49,7 @@ import org.xnio.channels.AcceptingChannel;
 import org.xnio.channels.BoundChannel;
 import org.xnio.channels.ConnectedChannel;
 import org.xnio.channels.ConnectedStreamChannel;
-import org.xnio.channels.MulticastMessageChannel;
+import org.xnio.channels.MulticastSocketChannel;
 
 /**
  * Test for XnioWorker.
@@ -563,7 +563,7 @@ public class XnioWorkerTestCase {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
         final InetSocketAddress address = new InetSocketAddress(0);
         final OptionMap optionMap = OptionMap.create(Options.MULTICAST, true, Options.SECURE, false);
-        final MulticastMessageChannel channel = xnioWorker.createUdpServer(address, optionMap);
+        final MulticastSocketChannel channel = xnioWorker.createUdpServer(address, optionMap);
         assertNotNull(channel);
         try {
             // check address
@@ -577,9 +577,9 @@ public class XnioWorkerTestCase {
     public void createUdpServerWithListener() throws IOException {
         final XnioWorker xnioWorker = xnio.createWorker(OptionMap.EMPTY);
         final InetSocketAddress address = new InetSocketAddress(0);
-        final TestChannelListener<MulticastMessageChannel> listener = new TestChannelListener<MulticastMessageChannel>();
+        final TestChannelListener<MulticastSocketChannel> listener = new TestChannelListener<MulticastSocketChannel>();
         final OptionMap optionMap = OptionMap.create(Options.MULTICAST, true, Options.SECURE, true);
-        final MulticastMessageChannel channel = xnioWorker.createUdpServer(address, listener, optionMap);
+        final MulticastSocketChannel channel = xnioWorker.createUdpServer(address, listener, optionMap);
         assertNotNull(channel);
         try {
             // check address

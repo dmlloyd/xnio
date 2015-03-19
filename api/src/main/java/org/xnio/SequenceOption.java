@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static org.xnio._private.Messages.msg;
+import org.wildfly.common.Assert;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
@@ -37,9 +37,7 @@ final class SequenceOption<T> extends Option<Sequence<T>> {
 
     SequenceOption(final Class<?> declClass, final String name, final Class<T> elementType) {
         super(declClass, name);
-        if (elementType == null) {
-            throw msg.nullParameter("elementType");
-        }
+        Assert.checkNotNullParam("elementType", elementType);
         this.elementType = elementType;
         parser = Option.getParser(elementType);
     }

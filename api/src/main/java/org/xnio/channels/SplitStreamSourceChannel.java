@@ -37,6 +37,7 @@ import static org.xnio.ChannelListeners.invokeChannelListener;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class SplitStreamSourceChannel implements StreamSourceChannel, ReadListenerSettable<SplitStreamSourceChannel>, CloseListenerSettable<SplitStreamSourceChannel> {
     private final StreamSourceChannel delegate;
 

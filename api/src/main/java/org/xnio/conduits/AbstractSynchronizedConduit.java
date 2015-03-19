@@ -24,6 +24,7 @@ package org.xnio.conduits;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class AbstractSynchronizedConduit<D extends Conduit> extends AbstractConduit<D> {
     protected final Object lock;
 

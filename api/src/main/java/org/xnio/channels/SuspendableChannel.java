@@ -6,6 +6,7 @@ import org.xnio.ChannelListener;
 /**
  * A suspendable bidirectional channel.
  */
+@Deprecated
 public interface SuspendableChannel extends CloseableChannel, SuspendableReadChannel, SuspendableWriteChannel {
 
     /** {@inheritDoc} */

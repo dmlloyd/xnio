@@ -30,6 +30,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.xnio._private.Messages.msg;
 
+import org.wildfly.common.Assert;
+
 /**
  * A buffer pooled allocator.  This pool uses a series of buffer regions to back the
  * returned pooled buffers.  When the buffer is no longer needed, it should be freed back into the pool; failure
@@ -37,6 +39,7 @@ import static org.xnio._private.Messages.msg;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class ByteBufferSlicePool implements Pool<ByteBuffer> {
 
     private static final int LOCAL_LENGTH;
@@ -84,12 +87,8 @@ public final class ByteBufferSlicePool implements Pool<ByteBuffer> {
      * @param threadLocalQueueSize the number of buffers to cache on each thread
      */
     public ByteBufferSlicePool(final BufferAllocator<ByteBuffer> allocator, final int bufferSize, final int maxRegionSize, final int threadLocalQueueSize) {
-        if (bufferSize <= 0) {
-            throw msg.parameterOutOfRange("bufferSize");
-        }
-        if (maxRegionSize < bufferSize) {
-            throw msg.parameterOutOfRange("bufferSize");
-        }
+        Assert.checkMinimumParameter("bufferSize", 1, bufferSize);
+        Assert.checkMinimumParameter("maxRegionSize", bufferSize, maxRegionSize);
         buffersPerRegion = maxRegionSize / bufferSize;
         this.bufferSize = bufferSize;
         this.allocator = allocator;

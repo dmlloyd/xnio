@@ -35,6 +35,7 @@ import org.xnio.Xnio;
 /**
  * An {@code InputStream} implementation which is populated asynchronously with {@link ByteBuffer} instances.
  */
+@Deprecated
 public class BufferPipeInputStream extends InputStream {
     private final Queue<Pooled<ByteBuffer>> queue;
     private final InputHandler inputHandler;

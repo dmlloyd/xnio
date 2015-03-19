@@ -43,6 +43,7 @@ import org.xnio.conduits.StreamSourceConduit;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
+@Deprecated
 final class JsseSslStreamConnection extends SslConnection {
 
     /**

@@ -41,6 +41,7 @@ import org.xnio.channels.ConnectedSslStreamChannel;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 @SuppressWarnings("unused")
+@Deprecated
 public abstract class XnioSsl {
 
     private static final InetSocketAddress ANY_INET_ADDRESS = new InetSocketAddress(0);

@@ -23,6 +23,7 @@ package org.xnio.channels;
  *
  * @apiviz.exclude
  */
+@Deprecated
 public class UnsupportedOptionException extends IllegalArgumentException {
     private static final long serialVersionUID = 250195510855241708L;
 

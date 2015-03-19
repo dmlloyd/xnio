@@ -38,6 +38,7 @@ import static org.xnio.Bits.*;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class NullStreamSinkChannel implements StreamSinkChannel, WriteListenerSettable<NullStreamSinkChannel>, CloseListenerSettable<NullStreamSinkChannel> {
 
     private final XnioIoThread thread;

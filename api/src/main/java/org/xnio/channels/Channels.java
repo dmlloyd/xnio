@@ -18,12 +18,12 @@
 
 package org.xnio.channels;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOError;
 import java.io.InterruptedIOException;
 import java.nio.channels.Channel;
 import java.nio.channels.FileChannel;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Locale;
@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import org.xnio.ChannelListener;
 import org.xnio.Option;
 import org.xnio.XnioIoThread;
+import org.xnio.channels.async.StreamOutputChannel;
 
 /**
  * A utility class containing static methods to support channel usage.
@@ -59,6 +60,7 @@ public final class Channels {
      *
      * @since 2.0
      */
+    @Deprecated
     public static void flushBlocking(SuspendableWriteChannel channel) throws IOException {
         while (! channel.flush()) {
             channel.awaitWritable();
@@ -74,6 +76,7 @@ public final class Channels {
      *
      * @since 2.0
      */
+    @Deprecated
     public static void shutdownWritesBlocking(SuspendableWriteChannel channel) throws IOException {
         channel.shutdownWrites();
         flushBlocking(channel);
@@ -91,6 +94,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends WritableByteChannel & SuspendableWriteChannel> int writeBlocking(C channel, ByteBuffer buffer) throws IOException {
         int t = 0;
         while (buffer.hasRemaining()) {
@@ -117,6 +121,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends WritableByteChannel & SuspendableWriteChannel> int writeBlocking(C channel, ByteBuffer buffer, long time, TimeUnit unit) throws IOException {
         long remaining = unit.toNanos(time);
         long now = System.nanoTime();
@@ -146,6 +151,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends GatheringByteChannel & SuspendableWriteChannel> long writeBlocking(C channel, ByteBuffer[] buffers, int offs, int len) throws IOException {
         long t = 0;
         while (Buffers.hasRemaining(buffers, offs, len)) {
@@ -174,6 +180,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends GatheringByteChannel & SuspendableWriteChannel> long writeBlocking(C channel, ByteBuffer[] buffers, int offs, int len, long time, TimeUnit unit) throws IOException {
         long remaining = unit.toNanos(time);
         long now = System.nanoTime();
@@ -199,6 +206,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends WritableMessageChannel> void sendBlocking(C channel, ByteBuffer buffer) throws IOException {
         while (! channel.send(buffer)) {
             channel.awaitWritable();
@@ -218,6 +226,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends WritableMessageChannel> boolean sendBlocking(C channel, ByteBuffer buffer, long time, TimeUnit unit) throws IOException {
         long remaining = unit.toNanos(time);
         long now = System.nanoTime();
@@ -243,6 +252,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends WritableMessageChannel> void sendBlocking(C channel, ByteBuffer[] buffers, int offs, int len) throws IOException {
         while (! channel.send(buffers, offs, len)) {
             channel.awaitWritable();
@@ -264,6 +274,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends WritableMessageChannel> boolean sendBlocking(C channel, ByteBuffer[] buffers, int offs, int len, long time, TimeUnit unit) throws IOException {
         long remaining = unit.toNanos(time);
         long now = System.nanoTime();
@@ -289,6 +300,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends ReadableByteChannel & SuspendableReadChannel> int readBlocking(C channel, ByteBuffer buffer) throws IOException {
         int res;
         while ((res = channel.read(buffer)) == 0 && buffer.hasRemaining()) {
@@ -310,6 +322,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends ReadableByteChannel & SuspendableReadChannel> int readBlocking(C channel, ByteBuffer buffer, long time, TimeUnit unit) throws IOException {
         int res = channel.read(buffer);
         if (res == 0 && buffer.hasRemaining()) {
@@ -333,6 +346,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends ScatteringByteChannel & SuspendableReadChannel> long readBlocking(C channel, ByteBuffer[] buffers, int offs, int len) throws IOException {
         long res;
         while ((res = channel.read(buffers, offs, len)) == 0) {
@@ -356,6 +370,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends ScatteringByteChannel & SuspendableReadChannel> long readBlocking(C channel, ByteBuffer[] buffers, int offs, int len, long time, TimeUnit unit) throws IOException {
         long res = channel.read(buffers, offs, len);
         if (res == 0L && Buffers.hasRemaining(buffers, offs, len)) {
@@ -377,6 +392,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends ReadableMessageChannel> int receiveBlocking(C channel, ByteBuffer buffer) throws IOException {
         int res;
         while ((res = channel.receive(buffer)) == 0) {
@@ -398,6 +414,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends ReadableMessageChannel> int receiveBlocking(C channel, ByteBuffer buffer, long time, TimeUnit unit) throws IOException {
         int res = channel.receive(buffer);
         if ((res) == 0) {
@@ -421,6 +438,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends ReadableMessageChannel> long receiveBlocking(C channel, ByteBuffer[] buffers, int offs, int len) throws IOException {
         long res;
         while ((res = channel.receive(buffers, offs, len)) == 0) {
@@ -444,6 +462,7 @@ public final class Channels {
      * @throws IOException if an I/O exception occurs
      * @since 1.2
      */
+    @Deprecated
     public static <C extends ReadableMessageChannel> long receiveBlocking(C channel, ByteBuffer[] buffers, int offs, int len, long time, TimeUnit unit) throws IOException {
         long res = channel.receive(buffers, offs, len);
         if ((res) == 0) {
@@ -465,6 +484,7 @@ public final class Channels {
      * @throws IOException if an I/O error occurs
      * @since 3.0
      */
+    @Deprecated
     public static <C extends ConnectedChannel, A extends AcceptingChannel<C>> C acceptBlocking(A channel) throws IOException {
         C accepted;
         while ((accepted = channel.accept()) == null) {
@@ -486,6 +506,7 @@ public final class Channels {
      * @throws IOException if an I/O error occurs
      * @since 3.0
      */
+    @Deprecated
     public static <C extends ConnectedChannel, A extends AcceptingChannel<C>> C acceptBlocking(A channel, long time, TimeUnit unit) throws IOException {
         final C accepted = channel.accept();
         if (accepted == null) {
@@ -505,6 +526,7 @@ public final class Channels {
      * @param count the number of bytes to transfer
      * @throws IOException if an I/O error occurs
      */
+    @Deprecated
     public static void transferBlocking(StreamSinkChannel destination, FileChannel source, long startPosition, final long count) throws IOException {
         long remaining = count;
         long res;
@@ -535,6 +557,7 @@ public final class Channels {
      * @param count the number of bytes to transfer
      * @throws IOException if an I/O error occurs
      */
+    @Deprecated
     public static void transferBlocking(FileChannel destination, StreamSourceChannel source, long startPosition, final long count) throws IOException {
         long remaining = count;
         long res;
@@ -566,6 +589,7 @@ public final class Channels {
      * @return the number of bytes actually transferred (will be fewer than {@code count} if EOF was reached)
      * @throws IOException if the transfer fails
      */
+    @Deprecated
     public static long transferBlocking(StreamSinkChannel destination, StreamSourceChannel source, ByteBuffer throughBuffer, long count) throws IOException {
         long t = 0L;
         long res;
@@ -603,6 +627,7 @@ public final class Channels {
      * @param listener the listener to set
      * @param <T> the channel type
      */
+    @Deprecated
     public static <T extends CloseableChannel> void setCloseListener(T channel, ChannelListener<? super T> listener) {
         @SuppressWarnings("unchecked")
         ChannelListener.Setter<? extends T> setter = (ChannelListener.Setter<? extends T>) channel.getCloseSetter();
@@ -616,6 +641,7 @@ public final class Channels {
      * @param listener the listener to set
      * @param <T> the channel type
      */
+    @Deprecated
     public static <T extends AcceptingChannel<?>> void setAcceptListener(T channel, ChannelListener<? super T> listener) {
         @SuppressWarnings("unchecked")
         ChannelListener.Setter<? extends T> setter = (ChannelListener.Setter<? extends T>) channel.getAcceptSetter();
@@ -629,6 +655,7 @@ public final class Channels {
      * @param listener the listener to set
      * @param <T> the channel type
      */
+    @Deprecated
     public static <T extends SuspendableReadChannel> void setReadListener(T channel, ChannelListener<? super T> listener) {
         @SuppressWarnings("unchecked")
         ChannelListener.Setter<? extends T> setter = (ChannelListener.Setter<? extends T>) channel.getReadSetter();
@@ -642,6 +669,7 @@ public final class Channels {
      * @param listener the listener to set
      * @param <T> the channel type
      */
+    @Deprecated
     public static <T extends SuspendableWriteChannel> void setWriteListener(T channel, ChannelListener<? super T> listener) {
         @SuppressWarnings("unchecked")
         ChannelListener.Setter<? extends T> setter = (ChannelListener.Setter<? extends T>) channel.getWriteSetter();
@@ -654,6 +682,7 @@ public final class Channels {
      * @param original the original
      * @return the wrapped channel
      */
+    @Deprecated
     public static ByteChannel wrapByteChannel(final ByteChannel original) {
         return new ByteChannel() {
             public int read(final ByteBuffer dst) throws IOException {
@@ -700,6 +729,7 @@ public final class Channels {
      * @param <T> the option value type
      * @return the value
      */
+    @Deprecated
     public static <T> T getOption(Configurable configurable, Option<T> option, T defaultValue) {
         try {
             final T value = configurable.getOption(option);
@@ -718,6 +748,7 @@ public final class Channels {
      * @param defaultValue the default value
      * @return the value
      */
+    @Deprecated
     public static boolean getOption(Configurable configurable, Option<Boolean> option, boolean defaultValue) {
         try {
             final Boolean value = configurable.getOption(option);
@@ -736,6 +767,7 @@ public final class Channels {
      * @param defaultValue the default value
      * @return the value
      */
+    @Deprecated
     public static int getOption(Configurable configurable, Option<Integer> option, int defaultValue) {
         try {
             final Integer value = configurable.getOption(option);
@@ -754,6 +786,7 @@ public final class Channels {
      * @param defaultValue the default value
      * @return the value
      */
+    @Deprecated
     public static long getOption(Configurable configurable, Option<Long> option, long defaultValue) {
         try {
             final Long value = configurable.getOption(option);
@@ -779,7 +812,7 @@ public final class Channels {
             } else if (targetType.isInstance(channel)) {
                 return targetType.cast(channel);
             } else if (channel instanceof WrappedChannel) {
-                channel = ((WrappedChannel<?>)channel).getChannel();
+                channel = (Channel) ((WrappedChannel<?>)channel).getChannel();
             } else {
                 return null;
             }
@@ -797,6 +830,7 @@ public final class Channels {
      * @return the number of bytes drained, 0 if reading the channel would block, or -1 if the EOF was reached
      * @throws IOException if an error occurs
      */
+    @Deprecated
     public static long drain(StreamSourceChannel channel, long count) throws IOException {
         long total = 0L, lres;
         int ires;
@@ -878,34 +912,30 @@ public final class Channels {
      * @throws IOException if an error occurs
      */
     public static long drain(FileChannel channel, long position, long count) throws IOException {
-        if (channel instanceof StreamSourceChannel) {
-            return drain((StreamSourceChannel) channel, count);
-        } else {
-            long total = 0L, lres;
-            int ires;
-            ByteBuffer buffer = null;
-            for (;;) {
-                if (count == 0L) return total;
-                if (NULL_FILE_CHANNEL != null) {
-                    while (count > 0) {
-                        if ((lres = channel.transferTo(position, count, NULL_FILE_CHANNEL)) == 0L) {
-                            break;
-                        }
-                        total += lres;
-                        count -= lres;
+        long total = 0L, lres;
+        int ires;
+        ByteBuffer buffer = null;
+        for (;;) {
+            if (count == 0L) return total;
+            if (NULL_FILE_CHANNEL != null) {
+                while (count > 0) {
+                    if ((lres = channel.transferTo(position, count, NULL_FILE_CHANNEL)) == 0L) {
+                        break;
                     }
-                    // jump out quick if we drained the fast way
-                    if (total > 0L) return total;
+                    total += lres;
+                    count -= lres;
                 }
-                if (buffer == null) buffer = DRAIN_BUFFER.duplicate();
-                if ((long) buffer.limit() > count) buffer.limit((int) count);
-                ires = channel.read(buffer);
-                buffer.clear();
-                switch (ires) {
-                    case -1: return total == 0L ? -1L : total;
-                    case 0: return total;
-                    default: total += (long) ires;
-                }
+                // jump out quick if we drained the fast way
+                if (total > 0L) return total;
+            }
+            if (buffer == null) buffer = DRAIN_BUFFER.duplicate();
+            if ((long) buffer.limit() > count) buffer.limit((int) count);
+            ires = channel.read(buffer);
+            buffer.clear();
+            switch (ires) {
+                case -1: return total == 0L ? -1L : total;
+                case 0: return total;
+                default: total += (long) ires;
             }
         }
     }
@@ -916,6 +946,7 @@ public final class Channels {
      *
      * @param channel the channel to resume
      */
+    @Deprecated
     public static void resumeReadsAsync(final SuspendableReadChannel channel) {
         final XnioIoThread ioThread = channel.getIoThread();
         if (ioThread == Thread.currentThread()) {
@@ -935,6 +966,7 @@ public final class Channels {
      *
      * @param channel the channel to resume
      */
+    @Deprecated
     public static void resumeWritesAsync(final SuspendableWriteChannel channel) {
         final XnioIoThread ioThread = channel.getIoThread();
         if (ioThread == Thread.currentThread()) {
@@ -957,6 +989,7 @@ public final class Channels {
      * @return The number of bytes written
      * @throws IOException
      */
+    @Deprecated
     public static int writeFinalBasic(StreamSinkChannel channel, ByteBuffer src) throws IOException {
         int res = channel.write(src);
         if(!src.hasRemaining()) {
@@ -976,6 +1009,7 @@ public final class Channels {
      * @return The number of bytes written
      * @throws IOException
      */
+    @Deprecated
     public static long writeFinalBasic(StreamSinkChannel channel, ByteBuffer[] srcs, int offset, int length) throws IOException {
         final long res = channel.write(srcs, offset, length);
         if (!Buffers.hasRemaining(srcs, offset, length)) {
@@ -984,17 +1018,21 @@ public final class Channels {
         return res;
     }
 
+    public static FileChannel getNullFileChannel() {
+        return NULL_FILE_CHANNEL;
+    }
+
     static {
         NULL_FILE_CHANNEL = AccessController.doPrivileged(new PrivilegedAction<FileChannel>() {
             public FileChannel run() {
                 final String osName = System.getProperty("os.name", "unknown").toLowerCase(Locale.US);
                 try {
                     if (osName.contains("windows")) {
-                        return new FileOutputStream("NUL:").getChannel();
+                        return FileChannel.open(Paths.get("NUL:"), StandardOpenOption.READ, StandardOpenOption.WRITE);
                     } else {
-                        return new FileOutputStream("/dev/null").getChannel();
+                        return FileChannel.open(Paths.get("/dev/null"), StandardOpenOption.READ, StandardOpenOption.WRITE);
                     }
-                } catch (FileNotFoundException e) {
+                } catch (IOException e) {
                     throw new IOError(e);
                 }
             }

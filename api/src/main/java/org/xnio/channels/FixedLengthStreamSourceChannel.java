@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.TimeUnit;
+
+import org.wildfly.common.Assert;
 import org.xnio.ChannelListener;
 import org.xnio.ChannelListeners;
 import org.xnio.Option;
@@ -41,6 +43,7 @@ import static org.xnio._private.Messages.msg;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class FixedLengthStreamSourceChannel implements StreamSourceChannel, ProtectedWrappedChannel<StreamSourceChannel>, ReadListenerSettable<FixedLengthStreamSourceChannel>, CloseListenerSettable<FixedLengthStreamSourceChannel> {
     private final StreamSourceChannel delegate;
     private final Object guard;
@@ -113,9 +116,7 @@ public final class FixedLengthStreamSourceChannel implements StreamSourceChannel
     public FixedLengthStreamSourceChannel(final StreamSourceChannel delegate, final long contentLength, final boolean configurable, final boolean propagateClose, final ChannelListener<? super FixedLengthStreamSourceChannel> finishListener, final Object guard) {
         this.guard = guard;
         this.finishListener = finishListener;
-        if (contentLength < 0L) {
-            throw msg.parameterOutOfRange("contentLength");
-        }
+        Assert.checkMinimumParameter("contentLength", 0L, contentLength);
         this.delegate = delegate;
         remaining = contentLength;
         delegate.getReadSetter().set(new ChannelListener<StreamSourceChannel>() {

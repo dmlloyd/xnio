@@ -37,6 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
+
+import org.wildfly.common.Assert;
 import org.xnio.channels.AcceptingChannel;
 import org.xnio.channels.AssembledConnectedMessageChannel;
 import org.xnio.channels.AssembledConnectedStreamChannel;
@@ -48,6 +50,12 @@ import org.xnio.channels.MulticastMessageChannel;
 import org.xnio.channels.StreamChannel;
 import org.xnio.channels.StreamSinkChannel;
 import org.xnio.channels.StreamSourceChannel;
+import org.xnio.channels.async.AsynchronousServerChannel;
+import org.xnio.channels.async.OptionChannel;
+import org.xnio.channels.async.StreamDuplexChannel;
+import org.xnio.channels.async.StreamInputChannel;
+import org.xnio.channels.async.StreamOutputChannel;
+import org.xnio.channels.async.StreamSocketChannel;
 import org.xnio.conduits.ConduitStreamSinkChannel;
 import org.xnio.conduits.ConduitStreamSourceChannel;
 import org.xnio.conduits.DeflatingStreamSinkConduit;
@@ -67,12 +75,13 @@ import static org.xnio._private.Messages.msg;
  * @since 3.0
  */
 @SuppressWarnings("unused")
-public abstract class XnioWorker extends AbstractExecutorService implements Configurable, ExecutorService, XnioIoFactory {
+public abstract class XnioWorker extends AbstractExecutorService implements Configurable, OptionChannel, ExecutorService, XnioIoFactory {
 
     private final Xnio xnio;
     private final TaskPool taskPool;
     private final String name;
     private final Runnable terminationTask;
+    private final boolean splitThreadsByDefault;
 
     private volatile int taskSeq;
     private volatile int coreSize;
@@ -121,6 +130,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
             taskQueue,
             new WorkerThreadFactory(threadGroup, optionMap, markThreadAsDaemon),
             new ThreadPoolExecutor.AbortPolicy());
+        splitThreadsByDefault = optionMap.get(Options.SPLIT_READ_WRITE_THREADS, true);
     }
 
     //==================================================
@@ -177,6 +187,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
                 return server.isAcceptResumed();
             }
 
+            @Deprecated
             public void wakeupAccepts() {
                 server.wakeupAccepts();
             }
@@ -235,10 +246,9 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      * @return the acceptor
      * @throws IOException if the server could not be created
      */
+    @Deprecated
     public AcceptingChannel<StreamConnection> createStreamConnectionServer(SocketAddress bindAddress, ChannelListener<? super AcceptingChannel<StreamConnection>> acceptListener, OptionMap optionMap) throws IOException {
-        if (bindAddress == null) {
-            throw msg.nullParameter("bindAddress");
-        }
+        Assert.checkNotNullParam("bindAddress", bindAddress);
         if (bindAddress instanceof InetSocketAddress) {
             return createTcpConnectionServer((InetSocketAddress) bindAddress, acceptListener, optionMap);
         } else if (bindAddress instanceof LocalSocketAddress) {
@@ -257,8 +267,9 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      * @return the acceptor
      * @throws IOException if the server could not be created
      */
+    @Deprecated
     protected AcceptingChannel<StreamConnection> createTcpConnectionServer(InetSocketAddress bindAddress, ChannelListener<? super AcceptingChannel<StreamConnection>> acceptListener, OptionMap optionMap) throws IOException {
-        throw msg.unsupported("createTcpConnectionServer");
+        throw Assert.unsupported();
     }
 
     /**
@@ -270,8 +281,53 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      * @return the acceptor
      * @throws IOException if the server could not be created
      */
+    @Deprecated
     protected AcceptingChannel<StreamConnection> createLocalStreamConnectionServer(LocalSocketAddress bindAddress, ChannelListener<? super AcceptingChannel<StreamConnection>> acceptListener, OptionMap optionMap) throws IOException {
-        throw msg.unsupported("createLocalStreamConnectionServer");
+        throw Assert.unsupported();
+    }
+
+    /**
+     * Create an asynchronous server for stream sockets.  The socket type is determined by the bind address.
+     *
+     * @param bindAddress the address to bind to
+     * @param optionMap the initial configuration for the server
+     * @return the acceptor
+     * @throws IOException if the server could not be created
+     */
+    public AsynchronousServerChannel<StreamSocketChannel> createAsynchronousStreamServer(SocketAddress bindAddress, OptionMap optionMap) throws IOException {
+        Assert.checkNotNullParam("bindAddress", bindAddress);
+        Assert.checkNotNullParam("optionMap", optionMap);
+        if (bindAddress instanceof InetSocketAddress) {
+            return createTcpAsynchronousStreamServer((InetSocketAddress) bindAddress, optionMap);
+        } else if (bindAddress instanceof LocalSocketAddress) {
+            return createLocalAsynchronousStreamServer((LocalSocketAddress) bindAddress, optionMap);
+        } else {
+            throw msg.badSockType(bindAddress.getClass());
+        }
+    }
+
+    /**
+     * Implementation helper method to create a TCP stream server.
+     *
+     * @param bindAddress the address to bind to
+     * @param optionMap the initial configuration for the server
+     * @return the server
+     * @throws IOException if the server could not be created
+     */
+    protected AsynchronousServerChannel<StreamSocketChannel> createTcpAsynchronousStreamServer(final InetSocketAddress bindAddress, final OptionMap optionMap) throws IOException {
+        throw Assert.unsupported();
+    }
+
+    /**
+     * Implementation helper method to create a UNIX domain stream server.
+     *
+     * @param bindAddress the address to bind to
+     * @param optionMap the initial configuration for the server
+     * @return the server
+     * @throws IOException if the server could not be created
+     */
+    protected AsynchronousServerChannel<StreamSocketChannel> createLocalAsynchronousStreamServer(final LocalSocketAddress bindAddress, final OptionMap optionMap) throws IOException {
+        throw Assert.unsupported();
     }
 
     // Connectors
@@ -334,16 +390,67 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         return futureResult.getIoFuture();
     }
 
+    @Deprecated
     public IoFuture<StreamConnection> openStreamConnection(SocketAddress destination, ChannelListener<? super StreamConnection> openListener, OptionMap optionMap) {
         return chooseThread().openStreamConnection(destination, openListener, optionMap);
     }
 
+    @Deprecated
     public IoFuture<StreamConnection> openStreamConnection(SocketAddress destination, ChannelListener<? super StreamConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap) {
         return chooseThread().openStreamConnection(destination, openListener, bindListener, optionMap);
     }
 
+    @Deprecated
     public IoFuture<StreamConnection> openStreamConnection(SocketAddress bindAddress, SocketAddress destination, ChannelListener<? super StreamConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap) {
         return chooseThread().openStreamConnection(bindAddress, destination, openListener, bindListener, optionMap);
+    }
+
+    public IoFuture<StreamSocketChannel> openAsynchronousStreamConnection(final SocketAddress bindAddress, final SocketAddress destination, final OptionMap optionMap) {
+        Assert.checkNotNullParam("destination", destination);
+        Assert.checkNotNullParam("optionMap", optionMap);
+        if (bindAddress != null && bindAddress.getClass() != destination.getClass()) {
+            throw msg.mismatchSockType(bindAddress.getClass(), destination.getClass());
+        }
+        XnioIoThread thread;
+        if (optionMap.get(Options.SPLIT_READ_WRITE_THREADS, splitThreadsByDefault)) {
+            if (optionMap.get(Options.WORKER_ESTABLISH_WRITING, false)) {
+                thread = chooseThread(XnioIoThread.Kind.SIMPLEX_WRITE);
+            } else {
+                thread = chooseThread(XnioIoThread.Kind.SIMPLEX_READ);
+            }
+        } else {
+            thread = chooseThread(XnioIoThread.Kind.DUPLEX);
+        }
+        thread.openAsynchronousStreamConnection(bindAddress, destination, optionMap);
+        if (destination instanceof InetSocketAddress) {
+            return openTcpAsynchronousStreamConnection((InetSocketAddress) bindAddress, (InetSocketAddress) destination);
+        } else if (destination instanceof LocalSocketAddress) {
+            return openLocalAsynchronousStreamConnection((LocalSocketAddress) bindAddress, (LocalSocketAddress) destination);
+        } else {
+            throw msg.badSockType(destination.getClass());
+        }
+    }
+
+    /**
+     * Implementation helper method to connect to a TCP server.
+     *
+     * @param bindAddress the bind address
+     * @param destinationAddress the destination address
+     * @return the future result of this operation
+     */
+    protected IoFuture<StreamSocketChannel> openTcpAsynchronousStreamConnection(InetSocketAddress bindAddress, InetSocketAddress destinationAddress) {
+        throw Assert.unsupported();
+    }
+
+    /**
+     * Implementation helper method to connect to a local (UNIX domain) server.
+     *
+     * @param bindAddress the bind address
+     * @param destinationAddress the destination address
+     * @return the future result of this operation
+     */
+    protected IoFuture<StreamSocketChannel> openLocalAsynchronousStreamConnection(LocalSocketAddress bindAddress, LocalSocketAddress destinationAddress) {
+        throw Assert.unsupported();
     }
 
     // Acceptors
@@ -368,6 +475,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         return futureResult.getIoFuture();
     }
 
+    @Deprecated
     public IoFuture<StreamConnection> acceptStreamConnection(SocketAddress destination, ChannelListener<? super StreamConnection> openListener, ChannelListener<? super BoundChannel> bindListener, OptionMap optionMap) {
         return chooseThread().acceptStreamConnection(destination, openListener, bindListener, optionMap);
     }
@@ -420,6 +528,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         return futureResult.getIoFuture();
     }
 
+    @Deprecated
     public IoFuture<MessageConnection> openMessageConnection(final SocketAddress destination, final ChannelListener<? super MessageConnection> openListener, final OptionMap optionMap) {
         return chooseThread().openMessageConnection(destination, openListener, optionMap);
     }
@@ -446,6 +555,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         return futureResult.getIoFuture();
     }
 
+    @Deprecated
     public IoFuture<MessageConnection> acceptMessageConnection(final SocketAddress destination, final ChannelListener<? super MessageConnection> openListener, final ChannelListener<? super BoundChannel> bindListener, final OptionMap optionMap) {
         return chooseThread().acceptMessageConnection(destination, openListener, bindListener, optionMap);
     }
@@ -469,8 +579,9 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      *
      * @since 3.0
      */
+    @Deprecated
     public MulticastMessageChannel createUdpServer(InetSocketAddress bindAddress, ChannelListener<? super MulticastMessageChannel> bindListener, OptionMap optionMap) throws IOException {
-        throw msg.unsupported("createUdpServer");
+        throw Assert.unsupported();
     }
 
     /**
@@ -485,6 +596,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      *
      * @since 3.0
      */
+    @Deprecated
     public MulticastMessageChannel createUdpServer(InetSocketAddress bindAddress, OptionMap optionMap) throws IOException {
         return createUdpServer(bindAddress, ChannelListeners.nullChannelListener(), optionMap);
     }
@@ -494,6 +606,22 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
     // Stream pipe methods
     //
     //==================================================
+
+    public ChannelPipe<StreamDuplexChannel, StreamDuplexChannel> createFullDuplexAsynchronousPipe() throws IOException {
+        return chooseThread().createFullDuplexAsynchronousPipe();
+    }
+
+    public ChannelPipe<StreamDuplexChannel, StreamDuplexChannel> createFullDuplexAsynchronousPipe(final XnioIoFactory peer) throws IOException {
+        return chooseThread().createFullDuplexAsynchronousPipe(peer);
+    }
+
+    public ChannelPipe<StreamInputChannel, StreamOutputChannel> createHalfDuplexAsynchronousPipe() throws IOException {
+        return chooseThread().createHalfDuplexAsynchronousPipe();
+    }
+
+    public ChannelPipe<StreamInputChannel, StreamOutputChannel> createHalfDuplexAsynchronousPipe(final XnioIoFactory peer) throws IOException {
+        return chooseThread().createHalfDuplexAsynchronousPipe(peer);
+    }
 
     /**
      * Open a bidirectional stream pipe.
@@ -558,6 +686,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      * @return a decompressed channel
      * @throws IOException if the channel could not be constructed
      */
+    @Deprecated
     public StreamSourceChannel getInflatingChannel(final StreamSourceChannel delegate, OptionMap options) throws IOException {
         final boolean nowrap;
         switch (options.get(Options.COMPRESSION_TYPE, CompressionType.DEFLATE)) {
@@ -576,6 +705,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      * @return a decompressed channel
      * @throws IOException if the channel could not be constructed
      */
+    @Deprecated
     protected StreamSourceChannel getInflatingChannel(final StreamSourceChannel delegate, final Inflater inflater) throws IOException {
         return new ConduitStreamSourceChannel(Configurable.EMPTY, new InflatingStreamSourceConduit(new StreamSourceChannelWrappingConduit(delegate), inflater));
     }
@@ -588,6 +718,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      * @return a compressed channel
      * @throws IOException if the channel could not be constructed
      */
+    @Deprecated
     public StreamSinkChannel getDeflatingChannel(final StreamSinkChannel delegate, final OptionMap options) throws IOException {
         final int level = options.get(Options.COMPRESSION_LEVEL, -1);
         final boolean nowrap;
@@ -607,26 +738,38 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      * @return a compressed channel
      * @throws IOException if the channel could not be constructed
      */
+    @Deprecated
     protected StreamSinkChannel getDeflatingChannel(final StreamSinkChannel delegate, final Deflater deflater) throws IOException {
         return new ConduitStreamSinkChannel(Configurable.EMPTY, new DeflatingStreamSinkConduit(new StreamSinkChannelWrappingConduit(delegate), deflater));
     }
 
+    //==================================================
+    //
+    // More stream pipe methods
+    //
+    //==================================================
+
+    @Deprecated
     public ChannelPipe<StreamChannel, StreamChannel> createFullDuplexPipe() throws IOException {
         return chooseThread().createFullDuplexPipe();
     }
 
+    @Deprecated
     public ChannelPipe<StreamConnection, StreamConnection> createFullDuplexPipeConnection() throws IOException {
         return chooseThread().createFullDuplexPipeConnection();
     }
 
+    @Deprecated
     public ChannelPipe<StreamSourceChannel, StreamSinkChannel> createHalfDuplexPipe() throws IOException {
         return chooseThread().createHalfDuplexPipe();
     }
 
+    @Deprecated
     public ChannelPipe<StreamConnection, StreamConnection> createFullDuplexPipeConnection(final XnioIoFactory peer) throws IOException {
         return chooseThread().createFullDuplexPipeConnection(peer);
     }
 
+    @Deprecated
     public ChannelPipe<StreamSourceChannel, StreamSinkChannel> createHalfDuplexPipe(final XnioIoFactory peer) throws IOException {
         return chooseThread().createHalfDuplexPipe(peer);
     }
@@ -702,6 +845,16 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
     }
 
     /**
+     * Get an I/O thread from this worker of the given kind.  The thread may be chosen based on arbitrary rules.  If
+     * no threads of the given kind exist, {@code null} is returned.
+     *
+     * @return the I/O thread, or {@code null}
+     */
+    public final XnioIoThread getIoThread(XnioIoThread.Kind kind) {
+        return chooseThread(kind);
+    }
+
+    /**
      * Get the user task to run once termination is complete.
      *
      * @return the termination task
@@ -734,11 +887,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
      * @return the pending task list
      */
     protected List<Runnable> shutDownTaskPoolNow() {
-        return doPrivileged(new PrivilegedAction<List<Runnable>>() {
-            public List<Runnable> run() {
-                return taskPool.shutdownNow();
-            }
-        });
+        return doPrivileged((PrivilegedAction<List<Runnable>>) taskPool::shutdownNow);
     }
 
     /**
@@ -773,7 +922,15 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         return OPTIONS.contains(option);
     }
 
-    public <T> T getOption(final Option<T> option) throws IOException {
+    public boolean hasGettableOption(final Option<?> option) {
+        return OPTIONS.contains(option);
+    }
+
+    public boolean hasSettableOption(final Option<?> option) {
+        return OPTIONS.contains(option);
+    }
+
+    public <T> T getOption(final Option<T> option) {
         if (option.equals(Options.WORKER_TASK_CORE_THREADS)) {
             return option.cast(Integer.valueOf(coreSize));
         } else if (option.equals(Options.WORKER_TASK_MAX_THREADS)) {
@@ -785,7 +942,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         }
     }
 
-    public <T> T setOption(final Option<T> option, final T value) throws IllegalArgumentException, IOException {
+    public <T> T setOption(final Option<T> option, final T value) {
         if (option.equals(Options.WORKER_TASK_CORE_THREADS)) {
             return option.cast(Integer.valueOf(coreSizeUpdater.getAndSet(this, Options.WORKER_TASK_CORE_THREADS.cast(value).intValue())));
         } else if (option.equals(Options.WORKER_TASK_MAX_THREADS)) {
@@ -833,11 +990,18 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
     //==================================================
 
     /**
-     * Choose a thread randomly from this worker.
+     * Choose any I/O thread randomly from this worker.
      *
      * @return the thread
      */
     protected abstract XnioIoThread chooseThread();
+
+    /**
+     * Choose an I/O thread of the specific kind randomly from this worker.
+     *
+     * @return the thread, or {@code null} if no threads of the given type exist
+     */
+    protected abstract XnioIoThread chooseThread(XnioIoThread.Kind kind);
 
     /**
      * Get the core worker pool size.
@@ -866,6 +1030,13 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         return taskQueue.size();
     }
 
+    /**
+     * Get the default buffer pool for this worker.
+     *
+     * @return the default buffer pool for this worker
+     */
+    public abstract ByteBufferPool.Set getBufferPool();
+
     final class TaskPool extends ThreadPoolExecutor {
 
         TaskPool(final int corePoolSize, final int maximumPoolSize, final long keepAliveTime, final TimeUnit unit, final BlockingQueue<Runnable> workQueue, final ThreadFactory threadFactory, final RejectedExecutionHandler handler) {
@@ -877,6 +1048,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         }
     }
 
+    @Deprecated
     static class StreamConnectionWrapListener implements ChannelListener<StreamConnection> {
 
         private final FutureResult<ConnectedStreamChannel> futureResult;
@@ -897,6 +1069,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         }
     }
 
+    @Deprecated
     static class MessageConnectionWrapListener implements ChannelListener<MessageConnection> {
 
         private final FutureResult<ConnectedMessageChannel> futureResult;
@@ -917,6 +1090,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         }
     }
 
+    @Deprecated
     private static final IoFuture.HandlingNotifier<StreamConnection, FutureResult<ConnectedStreamChannel>> STREAM_WRAPPING_HANDLER = new IoFuture.HandlingNotifier<StreamConnection, FutureResult<ConnectedStreamChannel>>() {
         public void handleCancelled(final FutureResult<ConnectedStreamChannel> attachment) {
             attachment.setCancelled();
@@ -927,6 +1101,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         }
     };
 
+    @Deprecated
     private static final IoFuture.HandlingNotifier<MessageConnection, FutureResult<ConnectedMessageChannel>> MESSAGE_WRAPPING_HANDLER = new IoFuture.HandlingNotifier<MessageConnection, FutureResult<ConnectedMessageChannel>>() {
         public void handleCancelled(final FutureResult<ConnectedMessageChannel> attachment) {
             attachment.setCancelled();

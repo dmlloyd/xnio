@@ -19,14 +19,12 @@
 
 package org.xnio;
 
-import org.xnio.channels.CloseableChannel;
-
 /**
- * A one-way pipe.
+ * A one- or two-way pipe.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public final class ChannelPipe<L extends CloseableChannel, R extends CloseableChannel> {
+public final class ChannelPipe<L, R> {
     private final L leftSide;
     private final R rightSide;
 

@@ -31,6 +31,7 @@ import static org.xnio._private.Messages.msg;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class MessageConnection extends Connection implements CloseListenerSettable<MessageConnection> {
 
     private ConduitReadableMessageChannel sourceChannel;

@@ -20,4 +20,5 @@
  * The XNIO conduit SPI.  Conduits represent the underlying transport and filtering mechanism of
  * point-to-point message- and stream-oriented channels.
  */
+@Deprecated
 package org.xnio.conduits;

@@ -32,6 +32,7 @@ import static org.xnio._private.Messages.listenerMsg;
  *
  * @since 2.0
  */
+@Deprecated
 public interface ChannelListener<T extends Channel> extends EventListener {
 
     /**
@@ -49,6 +50,7 @@ public interface ChannelListener<T extends Channel> extends EventListener {
      *
      * @since 2.0
      */
+    @Deprecated
     interface Setter<T extends Channel> {
 
         /**
@@ -66,6 +68,7 @@ public interface ChannelListener<T extends Channel> extends EventListener {
      *
      * @since 3.0
      */
+    @Deprecated
     class SimpleSetter<T extends Channel> implements Setter<T> {
 
         private ChannelListener<? super T> channelListener;

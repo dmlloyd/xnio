@@ -28,6 +28,8 @@ package org.xnio.channels;
  */
 public class ConcurrentStreamChannelAccessException extends IllegalStateException {
 
+    private static final long serialVersionUID = 1477885774281908358L;
+
     /**
      * Constructs a {@code ConcurrentStreamChannelAccessException} with no detail message. The cause is not initialized,
      * and may subsequently be initialized by a call to {@link #initCause(Throwable) initCause}.

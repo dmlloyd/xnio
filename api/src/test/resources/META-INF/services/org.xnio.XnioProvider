@@ -1,3 +1,0 @@
-
-# This module defines the NIO XNIO mock provider
-org.xnio.mock.XnioMock$Provider

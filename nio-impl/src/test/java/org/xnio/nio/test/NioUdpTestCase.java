@@ -37,7 +37,7 @@ import org.xnio.OptionMap;
 import org.xnio.ChannelListener;
 import org.xnio.Options;
 import org.xnio.XnioWorker;
-import org.xnio.channels.MulticastMessageChannel;
+import org.xnio.channels.MulticastSocketChannel;
 import org.xnio.channels.SocketAddressBuffer;
 
 /**
@@ -63,21 +63,21 @@ public final class NioUdpTestCase extends TestCase {
         }
     }
 
-    private synchronized void doServerSideTest(final boolean multicast, final ChannelListener<MulticastMessageChannel> handler, final Runnable body) throws IOException {
+    private synchronized void doServerSideTest(final boolean multicast, final ChannelListener<MulticastSocketChannel> handler, final Runnable body) throws IOException {
         final Xnio xnio = Xnio.getInstance("nio");
         doServerSidePart(multicast, handler, body, xnio.createWorker(OptionMap.EMPTY));
     }
 
-    private void doServerSidePart(final boolean multicast, final ChannelListener<MulticastMessageChannel> handler, final Runnable body, final XnioWorker worker) throws IOException {
+    private void doServerSidePart(final boolean multicast, final ChannelListener<MulticastSocketChannel> handler, final Runnable body, final XnioWorker worker) throws IOException {
         doPart(multicast, handler, body, SERVER_SOCKET_ADDRESS, worker);
     }
 
-    private void doClientSidePart(final boolean multicast, final ChannelListener<MulticastMessageChannel> handler, final Runnable body, final XnioWorker worker) throws IOException {
+    private void doClientSidePart(final boolean multicast, final ChannelListener<MulticastSocketChannel> handler, final Runnable body, final XnioWorker worker) throws IOException {
         doPart(multicast, handler, body, CLIENT_SOCKET_ADDRESS, worker);
     }
 
-    private synchronized void doPart(final boolean multicast, final ChannelListener<MulticastMessageChannel> handler, final Runnable body, final InetSocketAddress bindAddress, final XnioWorker worker) throws IOException {
-        final MulticastMessageChannel server = worker.createUdpServer(bindAddress, handler, OptionMap.create(Options.MULTICAST, Boolean.valueOf(multicast)));
+    private synchronized void doPart(final boolean multicast, final ChannelListener<MulticastSocketChannel> handler, final Runnable body, final InetSocketAddress bindAddress, final XnioWorker worker) throws IOException {
+        final MulticastSocketChannel server = worker.createUdpServer(bindAddress, handler, OptionMap.create(Options.MULTICAST, Boolean.valueOf(multicast)));
         try {
             body.run();
             server.close();
@@ -95,7 +95,7 @@ public final class NioUdpTestCase extends TestCase {
         }
     }
 
-    private synchronized void doClientServerSide(final boolean clientMulticast, final boolean serverMulticast, final ChannelListener<MulticastMessageChannel> serverHandler, final ChannelListener<MulticastMessageChannel> clientHandler, final Runnable body) throws IOException {
+    private synchronized void doClientServerSide(final boolean clientMulticast, final boolean serverMulticast, final ChannelListener<MulticastSocketChannel> serverHandler, final ChannelListener<MulticastSocketChannel> clientHandler, final Runnable body) throws IOException {
         final Xnio xnio = Xnio.getInstance("nio");
         final XnioWorker worker = xnio.createWorker(OptionMap.EMPTY);
         try {
@@ -121,10 +121,10 @@ public final class NioUdpTestCase extends TestCase {
         final CountDownLatch latch = new CountDownLatch(2);
         final AtomicBoolean openedOk = new AtomicBoolean(false);
         final AtomicBoolean closedOk = new AtomicBoolean(false);
-        doServerSideTest(multicast, new ChannelListener<MulticastMessageChannel>() {
-            public void handleEvent(final MulticastMessageChannel channel) {
-                channel.getCloseSetter().set(new ChannelListener<MulticastMessageChannel>() {
-                    public void handleEvent(final MulticastMessageChannel channel) {
+        doServerSideTest(multicast, new ChannelListener<MulticastSocketChannel>() {
+            public void handleEvent(final MulticastSocketChannel channel) {
+                channel.getCloseSetter().set(new ChannelListener<MulticastSocketChannel>() {
+                    public void handleEvent(final MulticastSocketChannel channel) {
                         closedOk.set(true);
                         latch.countDown();
                     }
@@ -163,11 +163,11 @@ public final class NioUdpTestCase extends TestCase {
         final CountDownLatch receivedLatch = new CountDownLatch(1);
         final CountDownLatch doneLatch = new CountDownLatch(2);
         final byte[] payload = new byte[] { 10, 5, 15, 10, 100, -128, 30, 0, 0 };
-        doClientServerSide(true, true, new ChannelListener<MulticastMessageChannel>() {
-            public void handleEvent(final MulticastMessageChannel channel) {
+        doClientServerSide(true, true, new ChannelListener<MulticastSocketChannel>() {
+            public void handleEvent(final MulticastSocketChannel channel) {
                 log.infof("In handleEvent for %s", channel);
-                channel.getReadSetter().set(new ChannelListener<MulticastMessageChannel>() {
-                    public void handleEvent(final MulticastMessageChannel channel) {
+                channel.getReadSetter().set(new ChannelListener<MulticastSocketChannel>() {
+                    public void handleEvent(final MulticastSocketChannel channel) {
                         log.infof("In handleReadable for %s", channel);
                         try {
                             final ByteBuffer buffer = ByteBuffer.allocate(50);
@@ -204,11 +204,11 @@ public final class NioUdpTestCase extends TestCase {
                 channel.resumeReads();
                 startLatch.countDown();
             }
-        }, new ChannelListener<MulticastMessageChannel>() {
-            public void handleEvent(final MulticastMessageChannel channel) {
+        }, new ChannelListener<MulticastSocketChannel>() {
+            public void handleEvent(final MulticastSocketChannel channel) {
                 log.infof("In handleEvent for %s", channel);
-                channel.getWriteSetter().set(new ChannelListener<MulticastMessageChannel>() {
-                    public void handleEvent(final MulticastMessageChannel channel) {
+                channel.getWriteSetter().set(new ChannelListener<MulticastSocketChannel>() {
+                    public void handleEvent(final MulticastSocketChannel channel) {
                         log.infof("In handleWritable for %s", channel);
                         try {
                             if (clientOK.get()) {

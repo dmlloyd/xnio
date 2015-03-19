@@ -33,6 +33,23 @@ public interface XnioExecutor extends Executor {
     /**
      * Execute a task in this executor.
      *
+     * @param callback the command to run
+     * @param attachment the attachment to pass to the callback
+     */
+    <T> void execute(IoCallback<T> callback, T attachment);
+
+    /**
+     * Execute a task in this executor.
+     *
+     * @param callback the command to run
+     */
+    default void execute(IoCallback<?> callback) {
+        execute(callback, null);
+    }
+
+    /**
+     * Execute a task in this executor.
+     *
      * @param command the command to run
      */
     void execute(Runnable command);

@@ -40,10 +40,10 @@ import org.jboss.logging.annotations.Field;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
+import org.wildfly.common.Assert;
 import org.xnio.IoFuture;
 import org.xnio.channels.AcceptingChannel;
 import org.xnio.channels.ConcurrentStreamChannelAccessException;
-import org.xnio.channels.ConnectedChannel;
 import org.xnio.channels.FixedLengthOverflowException;
 import org.xnio.channels.FixedLengthUnderflowException;
 import org.xnio.channels.ReadTimeoutException;
@@ -67,11 +67,9 @@ public interface Messages extends BasicLogger {
 
     // Validation messages - cross-check with xnio-nio
 
-    @Message(id = 0, value = "Method parameter '%s' cannot be null")
-    IllegalArgumentException nullParameter(String name);
+    // id = 0, value = "Method parameter '%s' cannot be null"
 
-    @Message(id = 1, value = "Method parameter '%s' must be greater than %d")
-    IllegalArgumentException minRange(String paramName, int minimumValue);
+    // id = 1, value = "Method parameter '%s' must be greater than %d"
 
     @Message(id = 2, value = "Unsupported socket address %s")
     IllegalArgumentException badSockType(Class<? extends SocketAddress> type);
@@ -112,12 +110,7 @@ public interface Messages extends BasicLogger {
     @Message(id = 14, value = "Buffer overflow")
     BufferOverflowException bufferOverflow();
 
-    // all param range checks should have ID 15
-
-    @Message(id = 15, value = "Parameter '%s' is out of range")
-    IllegalArgumentException parameterOutOfRange(String name);
-
-    // end range checks
+    // id = 15, value = "Parameter '%s' is out of range"
 
     @Message(id = 16, value = "Mixed direct and heap buffers not allowed")
     IllegalArgumentException mixedDirectAndHeap();
@@ -156,7 +149,7 @@ public interface Messages extends BasicLogger {
     IOException openModeRequires7();
 
     @Message(id = 28, value = "Current thread is not an XNIO I/O thread")
-    IllegalStateException xnioThreadRequired();
+    IllegalStateException xnioIoThreadRequired();
 
     @Message(id = 29, value = "Compression format not supported")
     IllegalArgumentException badCompressionFormat();
@@ -189,6 +182,9 @@ public interface Messages extends BasicLogger {
     CharConversionException characterDecodingProblem();
 
     // id = 39 - Option value range
+
+    @Message(id = 40, value = "Current thread is not an XNIO thread")
+    IllegalStateException xnioThreadRequired();
 
     // HTTP upgrade
 
@@ -283,10 +279,12 @@ public interface Messages extends BasicLogger {
     @Message(id = 816, value = "Redirect encountered establishing connection")
     String redirect();
 
+    @Message(id = 817, value = "Unexpected end of input")
+    EOFException unexpectedEof();
+
     // Unsupported implementation operations - cross-check with xnio-nio
 
-    @Message(id = 900, value = "Method '%s' is not supported on this implementation")
-    UnsupportedOperationException unsupported(String methodName);
+    // id = 900, value = "Method '%s' is not supported on this implementation"
 
     // General impl run-time messages - cross-check with xnio-nio
 
@@ -323,7 +321,7 @@ public interface Messages extends BasicLogger {
 
     @Message(id = 1009, value = "Failed to accept a connection on %s: %s")
     @LogMessage(level = ERROR)
-    void acceptFailed(AcceptingChannel<? extends ConnectedChannel> channel, IOException reason);
+    void acceptFailed(AcceptingChannel<?> channel, IOException reason);
 
     @Message(id = 1010, value = "Failed to submit task to executor: %s (closing %s)")
     @LogMessage(level = ERROR)

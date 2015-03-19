@@ -36,6 +36,7 @@ import org.xnio.channels.WriteListenerSettable;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class ConduitWritableMessageChannel implements WritableMessageChannel, WriteListenerSettable<ConduitWritableMessageChannel>, CloseListenerSettable<ConduitWritableMessageChannel>, Cloneable {
     private final Configurable configurable;
 

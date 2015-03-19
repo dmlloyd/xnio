@@ -8,6 +8,7 @@ package org.xnio;
  *
  * @apiviz.landmark
  */
+@Deprecated
 public interface Pool<T> {
 
     /**

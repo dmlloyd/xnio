@@ -39,6 +39,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.zip.ZipFile;
+
+import org.wildfly.common.Assert;
 import org.xnio.channels.SuspendableReadChannel;
 
 import java.util.logging.Handler;
@@ -343,6 +345,7 @@ public final class IoUtils {
      * @return the notifier
      */
     @SuppressWarnings({ "unchecked" })
+    @Deprecated
     public static <T extends Channel> IoFuture.Notifier<T, ChannelListener<? super T>> channelListenerNotifier() {
         return CHANNEL_LISTENER_NOTIFIER;
     }
@@ -467,6 +470,7 @@ public final class IoUtils {
      *
      * @param channel the channel
      */
+    @Deprecated
     public static void safeShutdownReads(final SuspendableReadChannel channel) {
         if (channel != null) {
             try {
@@ -481,7 +485,7 @@ public final class IoUtils {
      * Platform-independent channel-to-channel transfer method.  Uses regular {@code read} and {@code write} operations
      * to move bytes from the {@code source} channel to the {@code sink} channel.  After this call, the {@code throughBuffer}
      * should be checked for remaining bytes; if there are any, they should be written to the {@code sink} channel before
-     * proceeding.  This method may be used with NIO channels, XNIO channels, or a combination of the two.
+     * proceeding.  This method may be used with NIO channels, XNIO blocking channels, or a combination of the two.
      * <p>
      * If either or both of the given channels are blocking channels, then this method may block.
      *
@@ -614,10 +618,9 @@ public final class IoUtils {
      * @param <T> the channel type
      * @return the retrying channel source
      */
+    @Deprecated
     public static <T extends Channel> ChannelSource<T> getRetryingChannelSource(final ChannelSource<T> delegate, final int maxTries) throws IllegalArgumentException {
-        if (maxTries < 1) {
-            throw msg.minRange("maxTries", 1);
-        }
+        Assert.checkMinimumParameter("maxTries", 1, maxTries);
         return new RetryingChannelSource<T>(maxTries, delegate);
     }
 
@@ -729,7 +732,9 @@ public final class IoUtils {
      * Get a thread-local RNG.  Do not share this instance with other threads.
      *
      * @return the thread-local RNG
+     * @deprecated use {@link ThreadLocalRandom#current()} instead
      */
+    @Deprecated
     public static Random getThreadLocalRandom() {
         return ThreadLocalRandom.current();
     }

@@ -36,6 +36,7 @@ import org.xnio.channels.ReadableMessageChannel;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public final class ConduitReadableMessageChannel implements ReadableMessageChannel, ReadListenerSettable<ConduitReadableMessageChannel>, CloseListenerSettable<ConduitReadableMessageChannel>, Cloneable {
     private final Configurable configurable;
 

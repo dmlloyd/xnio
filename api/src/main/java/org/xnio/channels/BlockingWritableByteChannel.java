@@ -25,6 +25,8 @@ import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.io.Flushable;
 import java.util.concurrent.TimeUnit;
+
+import org.wildfly.common.Assert;
 import org.xnio.Buffers;
 
 /**
@@ -32,6 +34,7 @@ import org.xnio.Buffers;
  * Once any amount of data is written, the operation will return.  If a write timeout is specified, then the write methods
  * will throw a {@link WriteTimeoutException} if the timeout expires without writing any data.
  */
+@Deprecated
 public class BlockingWritableByteChannel implements GatheringByteChannel, Flushable {
     private final StreamSinkChannel delegate;
     private volatile long writeTimeout;
@@ -53,9 +56,7 @@ public class BlockingWritableByteChannel implements GatheringByteChannel, Flusha
      * @param writeTimeoutUnit the write timeout unit
      */
     public BlockingWritableByteChannel(final StreamSinkChannel delegate, final long writeTimeout, final TimeUnit writeTimeoutUnit) {
-        if (writeTimeout < 0L) {
-            throw msg.parameterOutOfRange("writeTimeout");
-        }
+        Assert.checkMinimumParameter("writeTimeout", 0L, writeTimeout);
         this.delegate = delegate;
         final long calcTimeout = writeTimeoutUnit.toNanos(writeTimeout);
         this.writeTimeout = writeTimeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
@@ -68,9 +69,7 @@ public class BlockingWritableByteChannel implements GatheringByteChannel, Flusha
      * @param writeTimeoutUnit the write timeout unit
      */
     public void setWriteTimeout(long writeTimeout, TimeUnit writeTimeoutUnit) {
-        if (writeTimeout < 0L) {
-            throw msg.parameterOutOfRange("writeTimeout");
-        }
+        Assert.checkMinimumParameter("writeTimeout", 0L, writeTimeout);
         final long calcTimeout = writeTimeoutUnit.toNanos(writeTimeout);
         this.writeTimeout = writeTimeout == 0L ? 0L : calcTimeout < 1L ? 1L : calcTimeout;
     }

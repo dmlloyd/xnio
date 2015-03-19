@@ -6,6 +6,7 @@ import org.xnio.ChannelListener;
 /**
  * A multipoint datagram channel.  A multipoint datagram channel is a bound multipoint message channel.
  */
+@Deprecated
 public interface BoundMultipointMessageChannel extends MultipointMessageChannel, BoundChannel {
 
     /** {@inheritDoc} */

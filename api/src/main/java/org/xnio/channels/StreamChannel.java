@@ -8,6 +8,7 @@ import org.xnio.ChannelListener;
  *
  * @apiviz.landmark
  */
+@Deprecated
 public interface StreamChannel extends SuspendableChannel, StreamSinkChannel, StreamSourceChannel, ByteChannel {
 
     /** {@inheritDoc} */

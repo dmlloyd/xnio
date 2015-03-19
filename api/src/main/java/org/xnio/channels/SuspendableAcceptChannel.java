@@ -31,6 +31,7 @@ import org.xnio.XnioIoThread;
  *
  * @since 3.0
  */
+@Deprecated
 public interface SuspendableAcceptChannel extends CloseableChannel {
     /**
      * Suspend further read notifications on this channel.

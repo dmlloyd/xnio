@@ -32,7 +32,7 @@
     <artifactId>xnio-all</artifactId>
     <packaging>pom</packaging>
     <name>XNIO Parent POM</name>
-    <version>3.4.0.Beta1-SNAPSHOT</version>
+    <version>4.0.0.Beta1-SNAPSHOT</version>
     <description>The aggregator POM of the XNIO project</description>
 
     <modules>
@@ -45,10 +45,14 @@
         <version.org.jboss.logging.jboss-logging>3.1.4.GA</version.org.jboss.logging.jboss-logging>
         <version.org.jboss.logging.jboss-logging-tools>1.2.0.Final</version.org.jboss.logging.jboss-logging-tools>
         <version.org.jboss.logmanager.jboss-logmanager>1.5.2.Final</version.org.jboss.logmanager.jboss-logmanager>
+        <version.org.wildfly.common>1.0.0.Alpha2-SNAPSHOT</version.org.wildfly.common>
         <version.bridger.plugin>1.0.Final</version.bridger.plugin>
         <version.surefire.plugin>2.17</version.surefire.plugin>
         <version.junit>4.11</version.junit>
         <version.jmock>2.6.0</version.jmock>
+
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencyManagement>
@@ -85,6 +89,11 @@
                 <artifactId>jboss-logging-annotations</artifactId>
                 <version>${version.org.jboss.logging.jboss-logging-tools}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.wildfly.common</groupId>
+                <artifactId>wildfly-common</artifactId>
+                <version>${version.org.wildfly.common}</version>
             </dependency>
             <dependency>
                 <groupId>org.jmock</groupId>

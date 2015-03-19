@@ -34,6 +34,7 @@ import java.util.Set;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public abstract class AutomaticReference<T> extends PhantomReference<T> {
 
     static final Object PERMIT = new Object();

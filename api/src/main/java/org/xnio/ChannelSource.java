@@ -9,6 +9,7 @@ import java.nio.channels.Channel;
  *
  * @param <T> the type of channel
  */
+@Deprecated
 public interface ChannelSource<T extends Channel> {
 
     /**

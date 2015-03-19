@@ -18,21 +18,24 @@
 
 package org.xnio;
 
+import static java.lang.Integer.signum;
+import static org.xnio._private.Messages.msg;
+
 import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.xnio._private.Messages.msg;
+import org.wildfly.common.Assert;
 
 /**
  * A strongly-typed option to configure an aspect of a service or connection.  Options are immutable and use identity comparisons
@@ -44,16 +47,18 @@ public abstract class Option<T> implements Serializable {
 
     private static final long serialVersionUID = -1564427329140182760L;
 
+    private static final AtomicInteger sequence = new AtomicInteger();
+
+    final int seqNum = sequence.incrementAndGet();
+
+    static final Comparator<Option<?>> OPTION_COMPARATOR = (o1, o2) -> signum(o1.seqNum - o2.seqNum);
+
     private final Class<?> declClass;
     private final String name;
 
     Option(final Class<?> declClass, final String name) {
-        if (declClass == null) {
-            throw msg.nullParameter("declClass");
-        }
-        if (name == null) {
-            throw msg.nullParameter("name");
-        }
+        Assert.checkNotNullParam("declClass", declClass);
+        Assert.checkNotNullParam("name", name);
         this.declClass = declClass;
         this.name = name;
     }
@@ -249,7 +254,7 @@ public abstract class Option<T> implements Serializable {
      * A builder for an immutable option set.
      */
     public static class SetBuilder {
-        private List<Option<?>> optionSet = new ArrayList<Option<?>>();
+        private Set<Option<?>> optionSet = new LinkedHashSet<>();
 
         SetBuilder() {
         }
@@ -261,9 +266,7 @@ public abstract class Option<T> implements Serializable {
          * @return this builder
          */
         public Option.SetBuilder add(Option<?> option) {
-            if (option == null) {
-                throw msg.nullParameter("option");
-            }
+            Assert.checkNotNullParam("option", option);
             optionSet.add(option);
             return this;
         }
@@ -276,12 +279,8 @@ public abstract class Option<T> implements Serializable {
          * @return this builder
          */
         public Option.SetBuilder add(Option<?> option1, Option<?> option2) {
-            if (option1 == null) {
-                throw msg.nullParameter("option1");
-            }
-            if (option2 == null) {
-                throw msg.nullParameter("option2");
-            }
+            Assert.checkNotNullParam("option1", option1);
+            Assert.checkNotNullParam("option2", option2);
             optionSet.add(option1);
             optionSet.add(option2);
             return this;
@@ -296,15 +295,9 @@ public abstract class Option<T> implements Serializable {
          * @return this builder
          */
         public Option.SetBuilder add(Option<?> option1, Option<?> option2, Option<?> option3) {
-            if (option1 == null) {
-                throw msg.nullParameter("option1");
-            }
-            if (option2 == null) {
-                throw msg.nullParameter("option2");
-            }
-            if (option3 == null) {
-                throw msg.nullParameter("option3");
-            }
+            Assert.checkNotNullParam("option1", option1);
+            Assert.checkNotNullParam("option2", option2);
+            Assert.checkNotNullParam("option3", option3);
             optionSet.add(option1);
             optionSet.add(option2);
             optionSet.add(option3);
@@ -318,9 +311,7 @@ public abstract class Option<T> implements Serializable {
          * @return this builder
          */
         public Option.SetBuilder add(Option<?>... options) {
-            if (options == null) {
-                throw msg.nullParameter("options");
-            }
+            Assert.checkNotNullParam("options", options);
             for (Option<?> option : options) {
                 add(option);
             }
@@ -334,9 +325,7 @@ public abstract class Option<T> implements Serializable {
          * @return this builder
          */
         public Option.SetBuilder addAll(Collection<Option<?>> options) {
-            if (options == null) {
-                throw msg.nullParameter("option");
-            }
+            Assert.checkNotNullParam("options", options);
             for (Option<?> option : options) {
                 add(option);
             }
@@ -349,7 +338,12 @@ public abstract class Option<T> implements Serializable {
          * @return the option set
          */
         public Set<Option<?>> create() {
-            return Collections.unmodifiableSet(new LinkedHashSet<Option<?>>(optionSet));
+            final int size = optionSet.size();
+            switch (size) {
+                case 0: return Collections.emptySet();
+                case 1: return Collections.singleton(optionSet.iterator().next());
+                default: return new OptionSet(optionSet.toArray(new Option<?>[optionSet.size()]));
+            }
         }
     }
 
@@ -367,44 +361,18 @@ public abstract class Option<T> implements Serializable {
 
     static {
         final Map<Class<?>, Option.ValueParser<?>> map = new HashMap<Class<?>, Option.ValueParser<?>>();
-        map.put(Byte.class, new Option.ValueParser<Byte>() {
-            public Byte parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-                return Byte.decode(string.trim());
+        map.put(Byte.class, (string, classLoader) -> Byte.decode(string.trim()));
+        map.put(Short.class, (string, classLoader) -> Short.decode(string.trim()));
+        map.put(Integer.class, (string, classLoader) -> Integer.decode(string.trim()));
+        map.put(Long.class, (string, classLoader) -> Long.decode(string.trim()));
+        map.put(String.class, (string, classLoader) -> string.trim());
+        map.put(Boolean.class, (string, classLoader) -> Boolean.valueOf(string.trim()));
+        map.put(Property.class, (string, classLoader) -> {
+            final int idx = string.indexOf('=');
+            if (idx == -1) {
+                throw msg.invalidOptionPropertyFormat(string);
             }
-        });
-        map.put(Short.class, new Option.ValueParser<Short>() {
-            public Short parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-                return Short.decode(string.trim());
-            }
-        });
-        map.put(Integer.class, new Option.ValueParser<Integer>() {
-            public Integer parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-                return Integer.decode(string.trim());
-            }
-        });
-        map.put(Long.class, new Option.ValueParser<Long>() {
-            public Long parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-                return Long.decode(string.trim());
-            }
-        });
-        map.put(String.class, new Option.ValueParser<String>() {
-            public String parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-                return string.trim();
-            }
-        });
-        map.put(Boolean.class, new Option.ValueParser<Boolean>() {
-            public Boolean parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-                return Boolean.valueOf(string.trim());
-            }
-        });
-        map.put(Property.class, new Option.ValueParser<Object>() {
-            public Object parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-                final int idx = string.indexOf('=');
-                if (idx == -1) {
-                    throw msg.invalidOptionPropertyFormat(string);
-                }
-                return Property.of(string.substring(0, idx), string.substring(idx + 1, string.length()));
-            }
+            return Property.of(string.substring(0, idx), string.substring(idx + 1, string.length()));
         });
         parsers = map;
     }
@@ -427,7 +395,7 @@ public abstract class Option<T> implements Serializable {
         return new ValueParser<T>() {
             @SuppressWarnings("unchecked")
             public T parseValue(final String string, final ClassLoader classLoader) throws IllegalArgumentException {
-                return enumType.cast(Enum.valueOf(enumType.asSubclass(Enum.class), string.trim()));
+                return enumType.cast((Object) Enum.valueOf((Class) Enum.class, string.trim()));
             }
         };
     }

@@ -54,6 +54,7 @@ import org.xnio.conduits.StreamSinkConduit;
 import org.xnio.conduits.StreamSourceConduit;
 import org.xnio.conduits.WriteReadyHandler;
 
+@Deprecated
 final class JsseStreamConduit implements StreamSourceConduit, StreamSinkConduit, Runnable {
 
     private static final boolean TRACE_SSL = Boolean.getBoolean("org.xnio.ssl.TRACE_SSL");

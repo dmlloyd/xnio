@@ -29,6 +29,7 @@ import org.xnio.XnioWorker;
  *
  * @since 2.0
  */
+@Deprecated
 public interface CloseableChannel extends InterruptibleChannel, Configurable {
     /**
      * Get the setter which can be used to change the close listener for this channel.  If the channel is already

@@ -9,5 +9,6 @@ import java.nio.channels.ScatteringByteChannel;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
+@Deprecated
 public interface ByteChannel extends java.nio.channels.ByteChannel, GatheringByteChannel, ScatteringByteChannel {
 }

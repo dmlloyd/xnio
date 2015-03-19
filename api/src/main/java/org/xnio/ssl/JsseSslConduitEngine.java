@@ -44,6 +44,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 
 import org.jboss.logging.Logger;
+import org.wildfly.common.Assert;
 import org.xnio.Buffers;
 import org.xnio.Pool;
 import org.xnio.Pooled;
@@ -55,6 +56,7 @@ import org.xnio.conduits.StreamSourceConduit;
  *
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
+@Deprecated
 final class JsseSslConduitEngine {
 
     private static final Logger log = Logger.getLogger("org.xnio.conduits");
@@ -117,24 +119,12 @@ final class JsseSslConduitEngine {
      * @param applicationBufferPool the application buffer pool
      */
     JsseSslConduitEngine(final JsseSslStreamConnection connection, final StreamSinkConduit sinkConduit, final StreamSourceConduit sourceConduit, final SSLEngine engine, final Pool<ByteBuffer> socketBufferPool, final Pool<ByteBuffer> applicationBufferPool) {
-        if (connection == null) {
-            throw msg.nullParameter("connection");
-        }
-        if (sinkConduit == null) {
-            throw msg.nullParameter("sinkConduit");
-        }
-        if (sourceConduit == null) {
-            throw msg.nullParameter("sourceConduit");
-        }
-        if (engine == null) {
-            throw msg.nullParameter("engine");
-        }
-        if (socketBufferPool == null) {
-            throw msg.nullParameter("socketBufferPool");
-        }
-        if (applicationBufferPool == null) {
-            throw msg.nullParameter("applicationBufferPool");
-        }
+        Assert.checkNotNullParam("connection", connection);
+        Assert.checkNotNullParam("sinkConduit", sinkConduit);
+        Assert.checkNotNullParam("sourceConduit", sourceConduit);
+        Assert.checkNotNullParam("engine", engine);
+        Assert.checkNotNullParam("socketBufferPool", socketBufferPool);
+        Assert.checkNotNullParam("applicationBufferPool", applicationBufferPool);
         this.connection = connection;
         this.sinkConduit = sinkConduit;
         this.sourceConduit = sourceConduit;
