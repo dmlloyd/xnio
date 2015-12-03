@@ -38,6 +38,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -419,7 +420,11 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
         }
     }
 
-    volatile boolean polling;
+    static final int FLAG_NOT_POLLING   = 0;
+    static final int FLAG_POLLING       = 1;
+    static final int FLAG_POLLING_WAKE  = 2;
+
+    final AtomicInteger pollingFlag = new AtomicInteger(FLAG_NOT_POLLING);
 
     public void run() {
         final Selector selector = this.selector;
@@ -501,7 +506,7 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
                         selector.selectNow();
                     } else if (delayTime == Long.MAX_VALUE) {
                         selectorLog.tracef("Beginning select on %s", selector);
-                        polling = true;
+                        pollingFlag.set(FLAG_POLLING);
                         try {
                             if (workQueue.peek() != null) {
                                 selector.selectNow();
@@ -509,12 +514,12 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
                                 selector.select();
                             }
                         } finally {
-                            polling = false;
+                            pollingFlag.set(FLAG_NOT_POLLING);
                         }
                     } else {
                         final long millis = 1L + delayTime / 1000000L;
                         selectorLog.tracef("Beginning select on %s (with timeout)", selector);
-                        polling = true;
+                        pollingFlag.set(FLAG_POLLING);
                         try {
                             if (workQueue.peek() != null) {
                                 selector.selectNow();
@@ -522,7 +527,7 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
                                 selector.select(millis);
                             }
                         } finally {
-                            polling = false;
+                            pollingFlag.set(FLAG_NOT_POLLING);
                         }
                     }
                 } catch (CancelledKeyException ignored) {
@@ -583,6 +588,17 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
         }
     }
 
+    private void wakeupIfPolling() {
+        final AtomicInteger pollingFlag = this.pollingFlag;
+        final int old = pollingFlag.get();
+        do {
+            if (old != FLAG_POLLING) {
+                return;
+            }
+        } while (! pollingFlag.compareAndSet(FLAG_POLLING, FLAG_POLLING_WAKE));
+        selector.wakeup();
+    }
+
     public void execute(final Runnable command) {
         if ((state & SHUTDOWN) != 0) {
             throw log.threadExiting();
@@ -590,9 +606,7 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
         synchronized (workLock) {
             selectorWorkQueue.add(command);
         }
-        if (polling) { // flag is always false if we're the same thread
-            selector.wakeup();
-        }
+        wakeupIfPolling();
     }
 
     void shutdown() {
@@ -625,9 +639,7 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
             queue.add(key);
             if (queue.iterator().next() == key) {
                 // we're the next one up; poke the selector to update its delay time
-                if (polling) { // flag is always false if we're the same thread
-                    selector.wakeup();
-                }
+                wakeupIfPolling();
             }
             return key;
         }
@@ -685,7 +697,7 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
             try {
                 return channel.register(selector, 0);
             } finally {
-                if (polling) selector.wakeup();
+                wakeupIfPolling();
             }
         } else {
             final SynchTask task = new SynchTask();
@@ -764,7 +776,7 @@ final class WorkerThread extends XnioIoThread implements XnioExecutor {
         } else {
             try {
                 key.interestOps(key.interestOps() | ops);
-                if (polling) selector.wakeup();
+                wakeupIfPolling();
             } catch (CancelledKeyException ignored) {
             }
         }
