@@ -40,10 +40,12 @@ import org.wildfly.common.function.ExceptionSupplier;
  */
 public abstract class ByteBufferPool {
 
+    private static volatile boolean enablePooling;
     private static final boolean sliceLargeBuffers;
 
     static {
-        sliceLargeBuffers = Boolean.parseBoolean(System.getProperty("xnio.buffer.slice-large-buffers", "true"));
+        enablePooling = Boolean.parseBoolean(System.getProperty("xnio.buffer.pooling", "false"));
+        sliceLargeBuffers = enablePooling && Boolean.parseBoolean(System.getProperty("xnio.buffer.slice-large-buffers", "true"));
     }
 
     private final ConcurrentLinkedQueue<ByteBuffer> masterQueue = new ConcurrentLinkedQueue<>();
@@ -61,6 +63,13 @@ public abstract class ByteBufferPool {
     }
 
     // buffer pool size constants
+
+    /**
+     * Enable buffer pooling if it has not already been enabled.  Once enabled, it cannot be disabled.
+     */
+    public static void enablePooling() {
+        enablePooling = true;
+    }
 
     /**
      * The size of large buffers.
@@ -157,7 +166,11 @@ public abstract class ByteBufferPool {
      * @return the allocated buffer
      */
     public ByteBuffer allocate() {
-        return threadLocalCache.get().allocate();
+        if (enablePooling) {
+            return threadLocalCache.get().allocate();
+        } else {
+            return createBuffer();
+        }
     }
 
     /**
@@ -289,7 +302,9 @@ public abstract class ByteBufferPool {
      * unlikely that buffers will be used; calling this method makes any cached buffers available to other threads.
      */
     public void flushCaches() {
-        threadLocalCache.get().flush();
+        if (enablePooling) {
+            threadLocalCache.get().flush();
+        }
     }
 
     /**
@@ -322,6 +337,10 @@ public abstract class ByteBufferPool {
     public <T, U, E extends Exception> void acceptWithCacheEx(int cacheSize, ExceptionBiConsumer<T, U, E> consumer, T param1, U param2) throws E {
         Assert.checkMinimumParameter("cacheSize", 0, cacheSize);
         Assert.checkNotNullParam("consumer", consumer);
+        if (! enablePooling) {
+            consumer.accept(param1, param2);
+            return;
+        }
         final ThreadLocal<Cache> threadLocalCache = this.threadLocalCache;
         final Cache parent = threadLocalCache.get();
         final Cache cache;
@@ -419,6 +438,9 @@ public abstract class ByteBufferPool {
     public <T, U, R, E extends Exception> R applyWithCacheEx(int cacheSize, ExceptionBiFunction<T, U, R, E> function, T param1, U param2) throws E {
         Assert.checkMinimumParameter("cacheSize", 0, cacheSize);
         Assert.checkNotNullParam("function", function);
+        if (! enablePooling) {
+            return function.apply(param1, param2);
+        }
         final ThreadLocal<Cache> threadLocalCache = this.threadLocalCache;
         final Cache parent = threadLocalCache.get();
         final Cache cache;
@@ -522,6 +544,9 @@ public abstract class ByteBufferPool {
         assert parent.getSize() % size == 0;
         return new ByteBufferPool(size, parent.isDirect()) {
             ByteBuffer createBuffer() {
+                if (! enablePooling) {
+                    return isDirect() ? ByteBuffer.allocateDirect(getSize()) : ByteBuffer.allocate(getSize());
+                }
                 synchronized (this) {
                     // avoid a storm of mass-population by only allowing one thread to split a parent buffer at a time
                     ByteBuffer appearing = getMasterQueue().poll();
@@ -547,14 +572,18 @@ public abstract class ByteBufferPool {
     abstract ByteBuffer createBuffer();
 
     final void freeMaster(ByteBuffer buffer) {
-        masterQueue.add(buffer);
+        if (enablePooling) {
+            masterQueue.add(buffer);
+        }
     }
 
     final void doFree(final ByteBuffer buffer) {
         assert buffer.capacity() == size;
         assert buffer.isDirect() == direct;
         buffer.clear();
-        threadLocalCache.get().free(buffer);
+        if (enablePooling) {
+            threadLocalCache.get().free(buffer);
+        }
     }
 
     interface Cache {
