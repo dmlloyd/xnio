@@ -66,7 +66,9 @@ import org.xnio.channels.ConnectedStreamChannel;
 public final class JsseXnioSsl extends XnioSsl {
     public static final boolean NEW_IMPL = doPrivileged((PrivilegedAction<Boolean>) () -> Boolean.valueOf(Boolean.parseBoolean(System.getProperty("org.xnio.ssl.new", "false")))).booleanValue();
 
-    static final Pool<ByteBuffer> bufferPool = new ByteBufferSlicePool(BufferAllocator.DIRECT_BYTE_BUFFER_ALLOCATOR, 21 * 1024, 21 * 1024 * 128);
+    private static final int buffersPerSlice = doPrivileged((PrivilegedAction<Integer>) () -> Integer.valueOf(Math.max(1, Integer.parseInt(System.getProperty("org.xnio.ssl.region-size", "128"))))).intValue();
+
+    static final Pool<ByteBuffer> bufferPool = new ByteBufferSlicePool(BufferAllocator.DIRECT_BYTE_BUFFER_ALLOCATOR, 21 * 1024, 21 * 1024 * buffersPerSlice);
     private final SSLContext sslContext;
 
     /**
